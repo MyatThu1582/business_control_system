@@ -211,101 +211,16 @@ require '../Config/common.php';
   $temp_purchase_itemstmt->execute();
   $temp_purchase_itemresult = $temp_purchase_itemstmt->fetchAll();
   ?>
-    
+<style>
+.item-typeahead { position: relative; }
+.item-typeahead-dropdown { position: absolute; left: 0; right: 0; top: 100%; z-index: 1000; max-height: 220px; overflow-y: auto; background: #fff; border: 1px solid #ced4da; border-top: none; border-radius: 0 0 4px 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none; }
+.item-typeahead-dropdown.show { display: block; }
+.item-typeahead-dropdown .option { padding: 8px 12px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee; }
+.item-typeahead-dropdown .option:hover, .item-typeahead-dropdown .option.active { background: #e9ecef; }
+.item-typeahead-dropdown .no-result { padding: 10px 12px; color: #6c757d; font-size: 14px; }
+</style>
 <script>
-  function fetchSupplierNameFromId() {
-      let supplierId = document.getElementById("supplier_id").value.trim();
-
-      if (supplierId !== "") {
-          fetch("get_supplier_by_id.php?supplier_id=" + encodeURIComponent(supplierId))
-          .then(res => res.json())
-          .then(data => {
-              if (data.success) {
-                  document.getElementById("supplier_name").value = data.supplier_name;
-              } else {
-                  document.getElementById("supplier_name").value = "";
-              }
-          })
-          .catch(err => console.error("Error fetching supplier name:", err));
-      } else {
-          document.getElementById("supplier_name").value = "";
-      }
-  }
-
-  function fetchSupplierIdFromName() {
-      let supplierName = document.getElementById("supplier_name").value.trim();
-
-      if (supplierName !== "") {
-          fetch("get_supplier_by_name.php?supplier_name=" + encodeURIComponent(supplierName))
-          .then(res => res.json())
-          .then(data => {
-              if (data.success) {
-                  document.getElementById("supplier_id").value = data.supplier_id;
-              } else {
-                  document.getElementById("supplier_id").value = "";
-              }
-          })
-          .catch(err => console.error("Error fetching supplier id:", err));
-      } else {
-          document.getElementById("supplier_id").value = "";
-      }
-  }
-
-  function fetchItemNameFromId(input) {
-    const row = input.closest('.item-row');
-    const itemId = input.value.trim();
-    const itemNameInput = row.querySelector('.item_name');
-    const priceInput = row.querySelector('.original_price');
-    const stockSpan = row.querySelector('.stock_balance');
-
-    if(itemId!=="") {
-      fetch("get_item_by_id.php?item_id="+encodeURIComponent(itemId))
-        .then(res => res.json())
-        .then(data => {
-          if(data.success){
-            itemNameInput.value = data.item_name;
-            priceInput.value = data.original_price;
-            stockSpan.innerText = "Balance Qty is "+data.stock_balance+" pcs";
-          } else {
-            itemNameInput.value = "";
-            priceInput.value = "";
-            stockSpan.innerText = "";
-          }
-        });
-    } else {
-      itemNameInput.value = "";
-      priceInput.value = "";
-      stockSpan.innerText = "";
-    }
-  }
-
-  function fetchItemIdFromName(input) {
-    const row = input.closest('.item-row');
-    const itemName = input.value.trim();
-    const itemIdInput = row.querySelector('.item_id');
-    const priceInput = row.querySelector('.original_price');
-    const stockSpan = row.querySelector('.stock_balance');
-
-    if(itemName!=="") {
-      fetch("get_item_by_name.php?item_name="+encodeURIComponent(itemName))
-        .then(res => res.json())
-        .then(data => {
-          if(data.success){
-            itemIdInput.value = data.item_id;
-            priceInput.value = data.original_price;
-            stockSpan.innerText = "Balance Qty is "+data.stock_balance+" pcs";
-          } else {
-            itemIdInput.value = "";
-            priceInput.value = "";
-            stockSpan.innerText = "";
-          }
-        });
-    } else {
-      itemIdInput.value = "";
-      priceInput.value = "";
-      stockSpan.innerText = "";
-    }
-  }
+  function _removedItemFetch(){}
 </script>
     <div class="col-md-12 px-3 pt-1">
       <div class="collapse show">
@@ -401,8 +316,7 @@ require '../Config/common.php';
                   <table class="table table-hover table-bordered">
                     <thead class="table-sm" style="background-color: #f4f4f4;">
                     <tr>
-                        <th>Item id</th>
-                        <th>Item Name</th>
+                        <th style="min-width: 200px;">Item</th>
                         <th class="text-right">Price</th>
                         <th class="text-right">Qty</th>
                         <th colspan="2">Amount</th>
@@ -420,22 +334,14 @@ require '../Config/common.php';
                               $itemIdResult = $itemIdstmt->fetch(PDO::FETCH_ASSOC);
                       ?>
                       <tr class="item-row" style="font-size: 15px;">
-                          <td class="no-padding"> 
-                            <input type="text" 
-                                  value="<?php echo $item_id; ?>" 
-                                  class="custom-input item_id" 
-                                  name="item_id[]" 
-                                  oninput="fetchItemNameFromId(this)">
+                          <td class="no-padding" style="min-width: 200px;">
+                            <div class="item-typeahead">
+                              <input type="text" class="custom-input item-typeahead-input" placeholder="Type item code or name..." value="<?php echo htmlspecialchars($item_id . ' - ' . ($itemIdResult['item_name'] ?? '')); ?>" autocomplete="off">
+                              <input type="hidden" name="item_id[]" value="<?php echo htmlspecialchars($item_id); ?>">
+                              <div class="item-typeahead-dropdown"></div>
+                            </div>
+                            <span class="stock_balance" style="color:green; font-size: 13px;"></span>
                           </td>
-
-                          <td class="no-padding">
-                            <input type="text" 
-                                  value="<?php echo $itemIdResult['item_name']; ?>" 
-                                  class="custom-input item_name" 
-                                  name="item_name[]" 
-                                  oninput="fetchItemIdFromName(this)">
-                          </td>
-
                           <td class="no-padding">
                             <input type="number" 
                                   value="<?php echo $value['price']; ?>" 
@@ -520,9 +426,15 @@ require '../Config/common.php';
         if (!firstRow) return;
 
         const clone = firstRow.cloneNode(true);
-        clone.querySelectorAll('input').forEach(input => input.value = '');
-        clone.querySelectorAll('.stock_balance').forEach(span => span.innerText = '');
+        clone.querySelectorAll('input').forEach(function(inp) { inp.value = ''; });
+        clone.querySelectorAll('.stock_balance').forEach(function(s) { s.innerText = ''; });
+        var dd = clone.querySelector('.item-typeahead-dropdown');
+        if (dd) { dd.innerHTML = ''; dd.classList.remove('show'); }
         container.appendChild(clone);
+        if (window.initItemTypeahead) {
+            var tw = clone.querySelector('.item-typeahead');
+            if (tw) window.initItemTypeahead(tw);
+        }
     });
 
     container.addEventListener('click', function(e) {
@@ -556,3 +468,65 @@ require '../Config/common.php';
   });
 </script>
 <?php include 'footer.html'; ?>
+<script>
+(function() {
+  var searchTimeout;
+  function initItemTypeahead(w) {
+    var input = w.querySelector('.item-typeahead-input');
+    var hidden = w.querySelector('input[name="item_id[]"]');
+    var dropdown = w.querySelector('.item-typeahead-dropdown');
+    if (!input || !hidden || !dropdown) return;
+    function search(q, done) {
+      fetch('get_items_search.php?q=' + encodeURIComponent((q || '').trim())).then(function(r) { return r.json(); })
+        .then(function(d) { done(d.success && d.results ? d.results : []); }).catch(function() { done([]); });
+    }
+    function render(list) {
+      dropdown.innerHTML = '';
+      if (!list.length) dropdown.innerHTML = '<div class="no-result">No matching item</div>';
+      else list.forEach(function(x) {
+        var div = document.createElement('div');
+        div.className = 'option';
+        div.textContent = (x.item_id || '') + ' - ' + (x.item_name || '');
+        div.onclick = function() {
+          var row = w.closest('.item-row');
+          hidden.value = x.item_id || '';
+          input.value = (x.item_id || '') + ' - ' + (x.item_name || '');
+          var priceInput = row ? row.querySelector('.original_price') : null;
+          var stockSpan = row ? row.querySelector('.stock_balance') : null;
+          if (priceInput) priceInput.value = x.original_price != null ? x.original_price : '';
+          if (stockSpan) {
+            stockSpan.innerText = '';
+            fetch('get_item_by_id.php?item_id=' + encodeURIComponent(x.item_id)).then(function(r) { return r.json(); })
+              .then(function(d) { if (d.success && stockSpan) stockSpan.innerText = 'Balance Qty is ' + (d.stock_balance || 0) + ' pcs'; }).catch(function() {});
+          }
+          dropdown.classList.remove('show');
+          if (priceInput) priceInput.dispatchEvent(new Event('input'));
+        };
+        dropdown.appendChild(div);
+      });
+      dropdown.classList.add('show');
+    }
+    input.oninput = function() {
+      clearTimeout(searchTimeout);
+      var q = input.value.trim();
+      if (!q) { hidden.value = ''; dropdown.classList.remove('show'); return; }
+      searchTimeout = setTimeout(function() { search(q, render); }, 300);
+    };
+    input.onfocus = function() { if (input.value.trim()) search(input.value.trim(), render); };
+    input.onkeydown = function(e) {
+      if (e.key === 'Escape') { dropdown.classList.remove('show'); return; }
+      var opts = dropdown.querySelectorAll('.option');
+      if (!opts.length) return;
+      var act = dropdown.querySelector('.option.active');
+      if (e.key === 'ArrowDown') { e.preventDefault(); if (!act) opts[0].classList.add('active'); else { act.classList.remove('active'); (act.nextElementSibling || opts[0]).classList.add('active'); } }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); if (!act) opts[opts.length-1].classList.add('active'); else { act.classList.remove('active'); (act.previousElementSibling || opts[opts.length-1]).classList.add('active'); } }
+      else if (e.key === 'Enter' && act) { e.preventDefault(); act.click(); }
+    };
+    document.addEventListener('click', function(e) { if (!w.contains(e.target)) dropdown.classList.remove('show'); });
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.item-typeahead').forEach(initItemTypeahead);
+    window.initItemTypeahead = initItemTypeahead;
+  });
+})();
+</script>

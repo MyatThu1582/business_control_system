@@ -199,11 +199,6 @@ require '../Config/common.php';
       }
   }
 
-  // Load suppliers and items for typeahead
-  $supplierListStmt = $pdo->query("SELECT supplier_id, supplier_name FROM supplier ORDER BY supplier_name");
-  $suppliersList = $supplierListStmt ? $supplierListStmt->fetchAll(PDO::FETCH_ASSOC) : [];
-  $itemListStmt = $pdo->query("SELECT item_id, item_name, original_price FROM item ORDER BY item_name");
-  $itemsList = $itemListStmt ? $itemListStmt->fetchAll(PDO::FETCH_ASSOC) : [];
   ?>
 <style>
 .supplier-typeahead, .item-typeahead { position: relative; }
@@ -221,10 +216,6 @@ require '../Config/common.php';
 .supplier-typeahead-dropdown .option:last-child, .item-typeahead-dropdown .option:last-child { border-bottom: none; }
 .supplier-typeahead-dropdown .no-result, .item-typeahead-dropdown .no-result { padding: 10px 12px; color: #6c757d; font-size: 14px; }
 </style>
-<script>
-var suppliersList = <?php echo json_encode($suppliersList); ?>;
-var itemsList = <?php echo json_encode($itemsList); ?>;
-</script>
     <div class="col-md-12 mt-2 px-3 pt-1">
       <div class="collapse show" id="">  
         <form class="" action="" method="post">
@@ -305,9 +296,8 @@ var itemsList = <?php echo json_encode($itemsList); ?>;
                       <tr class="item-row" style="font-size: 15px;">
                           <td class="no-padding" style="min-width: 250px;">
                             <div class="item-typeahead">
-                              <input type="text" class="custom-input item-typeahead-input" placeholder="" autocomplete="off">
-                              <input type="hidden" name="item_id[]" class="item_id">
-                              <input type="hidden" name="item_name[]" class="item_name">
+                              <input type="text" class="custom-input item-typeahead-input" placeholder="Type item code or name..." autocomplete="off">
+                              <input type="hidden" name="item_id[]">
                               <div class="item-typeahead-dropdown"></div>
                             </div>
                           </td>
@@ -364,8 +354,7 @@ var itemsList = <?php echo json_encode($itemsList); ?>;
                   <td class="no-padding" style="min-width: 250px;">
                     <div class="item-typeahead">
                       <input type="text" class="custom-input item-typeahead-input" placeholder="Type item code or name..." autocomplete="off">
-                      <input type="hidden" name="item_id[]" class="item_id">
-                      <input type="hidden" name="item_name[]" class="item_name">
+                      <input type="hidden" name="item_id[]">
                       <div class="item-typeahead-dropdown"></div>
                     </div>
                   </td>
@@ -483,7 +472,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (supplierInput) supplierInput.disabled = disable;
       if (supplierHidden) supplierHidden.disabled = disable;
     }
-    itemRowsContainer.querySelectorAll('.item-typeahead-input, input.item_id, input.item_name, .original_price, .discount, .qty, .foc, input[name="amount[]"]').forEach(function(el) {
+    itemRowsContainer.querySelectorAll('.item-typeahead-input, input[name="item_id[]"], .original_price, .discount, .qty, .foc, input[name="amount[]"]').forEach(function(el) {
       el.disabled = disable;
     });
     if (!disable) {
@@ -611,38 +600,40 @@ document.addEventListener('DOMContentLoaded', function () {
 <!-- Supplier typeahead -->
 <script>
 (function() {
-  if (typeof suppliersList === 'undefined') suppliersList = [];
-  function displayText(s) { return s.supplier_id + ' - ' + s.supplier_name; }
-  function filterSuppliers(q) {
-    q = (q || '').trim().toLowerCase();
-    if (!q) return suppliersList.slice(0, 50);
-    return suppliersList.filter(function(s) {
-      var text = (s.supplier_id + ' - ' + (s.supplier_name || '')).toLowerCase();
-      return text === q || (s.supplier_id && s.supplier_id.toString().toLowerCase().indexOf(q) !== -1) || (s.supplier_name && s.supplier_name.toLowerCase().indexOf(q) !== -1);
-    }).slice(0, 50);
-  }
-  function renderDropdown(dropdownEl, list, onSelect) {
-    dropdownEl.innerHTML = '';
-    if (list.length === 0) dropdownEl.innerHTML = '<div class="no-result">No matching supplier</div>';
-    else list.forEach(function(s) {
-      var div = document.createElement('div'); div.className = 'option'; div.textContent = displayText(s);
-      div.addEventListener('click', function() { onSelect(s.supplier_id, displayText(s)); });
-      dropdownEl.appendChild(div);
-    });
-    dropdownEl.classList.add('show');
+  var searchTimeout;
+  function displayText(s) { return (s.supplier_id || '') + ' - ' + (s.supplier_name || ''); }
+  function searchSuppliers(q, callback) {
+    if (!q || q.trim() === '') { callback([]); return; }
+    fetch('get_suppliers_search.php?q=' + encodeURIComponent(q.trim())).then(function(r) { return r.json(); })
+      .then(function(d) { callback(d.success && d.results ? d.results : []); }).catch(function() { callback([]); });
   }
   function initSupplierTypeahead(wrapper) {
     var input = wrapper.querySelector('.supplier-typeahead-input');
     var hidden = wrapper.querySelector('input[name="supplier_id"]');
     var dropdown = wrapper.querySelector('.supplier-typeahead-dropdown');
     if (!input || !hidden || !dropdown) return;
+    function doSearch() {
+      searchSuppliers(input.value.trim(), function(list) {
+        dropdown.innerHTML = '';
+        if (!list.length) dropdown.innerHTML = '<div class="no-result">No matching supplier</div>';
+        else list.forEach(function(s) {
+          var div = document.createElement('div');
+          div.className = 'option';
+          div.textContent = displayText(s);
+          div.onclick = function() { hidden.value = s.supplier_id || ''; input.value = displayText(s); dropdown.classList.remove('show'); };
+          dropdown.appendChild(div);
+        });
+        dropdown.classList.add('show');
+      });
+    }
     input.addEventListener('input', function() {
+      clearTimeout(searchTimeout);
       var q = input.value.trim();
       if (!q) { hidden.value = ''; dropdown.classList.remove('show'); return; }
-      renderDropdown(dropdown, filterSuppliers(q), function(id, text) { hidden.value = id; input.value = text; dropdown.classList.remove('show'); });
+      searchTimeout = setTimeout(doSearch, 300);
     });
     input.addEventListener('focus', function() {
-      renderDropdown(dropdown, filterSuppliers(input.value.trim()), function(id, text) { hidden.value = id; input.value = text; dropdown.classList.remove('show'); });
+      if (input.value.trim()) doSearch();
     });
     input.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') { dropdown.classList.remove('show'); return; }
@@ -663,73 +654,72 @@ document.addEventListener('DOMContentLoaded', function () {
 <!-- Item typeahead (multiple rows) -->
 <script>
 (function() {
-  if (typeof itemsList === 'undefined') itemsList = [];
-  function itemDisplayText(it) { return (it.item_id || '') + ' - ' + (it.item_name || ''); }
-  function filterItems(q) {
-    q = (q || '').trim().toLowerCase();
-    if (!q) return itemsList.slice(0, 50);
-    return itemsList.filter(function(it) {
-      var text = itemDisplayText(it).toLowerCase();
-      return text === q || (it.item_id && it.item_id.toString().toLowerCase().indexOf(q) !== -1) || (it.item_name && it.item_name.toLowerCase().indexOf(q) !== -1);
-    }).slice(0, 50);
-  }
-  function renderItemDropdown(dropdownEl, list, onSelect) {
-    dropdownEl.innerHTML = '';
-    if (list.length === 0) dropdownEl.innerHTML = '<div class="no-result">No matching item</div>';
-    else list.forEach(function(it) {
-      var div = document.createElement('div'); div.className = 'option'; div.textContent = itemDisplayText(it);
-      div.addEventListener('click', function() { onSelect(it); });
-      dropdownEl.appendChild(div);
-    });
-    dropdownEl.classList.add('show');
+  var itemSearchTimeout;
+  function searchItems(q, done) {
+    if (!q || q.trim() === '') { done([]); return; }
+    fetch('get_items_search.php?q=' + encodeURIComponent(q.trim())).then(function(r) { return r.json(); })
+      .then(function(d) { done(d.success && d.results ? d.results : []); }).catch(function() { done([]); });
   }
   function initItemTypeahead(wrapper) {
     if (!wrapper) return;
     var input = wrapper.querySelector('.item-typeahead-input');
-    var hiddenId = wrapper.querySelector('input.item_id');
-    var hiddenName = wrapper.querySelector('input.item_name');
+    var hidden = wrapper.querySelector('input[name="item_id[]"]');
     var dropdown = wrapper.querySelector('.item-typeahead-dropdown');
     var row = wrapper.closest('.item-row');
     var priceInput = row ? row.querySelector('.original_price') : null;
     var stockSpan = row ? row.querySelector('.stock_balance') : null;
-    if (!input || !hiddenId || !hiddenName || !dropdown) return;
-    function onSelectItem(it) {
-      hiddenId.value = it.item_id || ''; hiddenName.value = it.item_name || '';
-      input.value = itemDisplayText(it);
-      if (priceInput) {
-        priceInput.value = it.original_price != null ? it.original_price : '';
-        priceInput.dispatchEvent(new Event('input'));
-      }
-      dropdown.classList.remove('show');
-      if (stockSpan) {
-        stockSpan.innerText = '';
-        stockSpan.style.color = '';
-        fetch('get_item_by_id.php?item_id=' + encodeURIComponent(it.item_id)).then(function(r) { return r.json(); }).then(function(data) {
-          if (data.success && stockSpan) {
-            var bal = parseInt(data.stock_balance, 10) || 0;
-            if (bal > 0) {
-              stockSpan.innerText = bal;
-              stockSpan.style.color = '';
-            } else {
-              stockSpan.innerText = 'Out of Stock';
-              stockSpan.style.color = 'red';
-            }
+    if (!input || !hidden || !dropdown) return;
+    function render(list) {
+      dropdown.innerHTML = '';
+      if (!list.length) dropdown.innerHTML = '<div class="no-result">No matching item</div>';
+      else list.forEach(function(x) {
+        var div = document.createElement('div');
+        div.className = 'option';
+        div.textContent = (x.item_id || '') + ' - ' + (x.item_name || '');
+        div.onclick = function() {
+          hidden.value = x.item_id || '';
+          input.value = (x.item_id || '') + ' - ' + (x.item_name || '');
+          if (priceInput) {
+            priceInput.value = x.original_price != null ? x.original_price : '';
+            priceInput.dispatchEvent(new Event('input'));
           }
-        }).catch(function() {});
-      }
+          dropdown.classList.remove('show');
+          if (stockSpan) {
+            stockSpan.innerText = '';
+            stockSpan.style.color = '';
+            fetch('get_item_by_id.php?item_id=' + encodeURIComponent(x.item_id)).then(function(r) { return r.json(); }).then(function(data) {
+              if (data.success && stockSpan) {
+                var bal = parseInt(data.stock_balance, 10) || 0;
+                if (bal > 0) {
+                  stockSpan.innerText = bal;
+                  stockSpan.style.color = '';
+                } else {
+                  stockSpan.innerText = 'Out of Stock';
+                  stockSpan.style.color = 'red';
+                }
+              }
+            }).catch(function() {});
+          }
+        };
+        dropdown.appendChild(div);
+      });
+      dropdown.classList.add('show');
     }
     input.addEventListener('input', function() {
+      clearTimeout(itemSearchTimeout);
       var q = input.value.trim();
       if (!q) {
-        hiddenId.value = ''; hiddenName.value = '';
+        hidden.value = '';
         if (priceInput) priceInput.value = '';
         if (stockSpan) { stockSpan.innerText = ''; stockSpan.style.color = ''; }
         dropdown.classList.remove('show');
         return;
       }
-      renderItemDropdown(dropdown, filterItems(q), onSelectItem);
+      itemSearchTimeout = setTimeout(function() { searchItems(q, render); }, 300);
     });
-    input.addEventListener('focus', function() { renderItemDropdown(dropdown, filterItems(input.value.trim()), onSelectItem); });
+    input.addEventListener('focus', function() {
+      if (input.value.trim()) searchItems(input.value.trim(), render);
+    });
     input.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') { dropdown.classList.remove('show'); return; }
       var opts = dropdown.querySelectorAll('.option');

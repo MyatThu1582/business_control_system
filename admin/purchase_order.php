@@ -151,14 +151,6 @@ include 'header.php';
     $purchase_orderstmt = $pdo->prepare("SELECT * FROM purchase_order ORDER BY id DESC");
     $purchase_orderstmt->execute();
     $purchase_orderdata = $purchase_orderstmt->fetchAll();
-
-    // Load all suppliers for typeahead
-    $supplierListStmt = $pdo->query("SELECT supplier_id, supplier_name FROM supplier ORDER BY supplier_name");
-    $suppliersList = $supplierListStmt ? $supplierListStmt->fetchAll(PDO::FETCH_ASSOC) : [];
-
-    // Load all items for typeahead (multiple item rows)
-    $itemListStmt = $pdo->query("SELECT item_id, item_name, original_price FROM item ORDER BY item_name");
-    $itemsList = $itemListStmt ? $itemListStmt->fetchAll(PDO::FETCH_ASSOC) : [];
  ?>
 <style>
 .supplier-typeahead { position: relative; }
@@ -193,12 +185,6 @@ include 'header.php';
 .item-typeahead-dropdown .option:last-child { border-bottom: none; }
 .item-typeahead-dropdown .no-result { padding: 10px 12px; color: #6c757d; font-size: 14px; }
 </style>
-<script>
-var suppliersList = <?php echo json_encode($suppliersList); ?>;
-var itemsList = <?php echo json_encode($itemsList); ?>;
-</script>
-<script>
-</script>
 
 
   <div class="col-md-12 mt-4 px-3 pt-1">
@@ -245,8 +231,7 @@ var itemsList = <?php echo json_encode($itemsList); ?>;
                   <label>Item</label>
                   <div class="item-typeahead">
                     <input type="text" class="form-control item-typeahead-input" placeholder="Type item code or name..." autocomplete="off">
-                    <input type="hidden" name="item_id[]" class="item_id">
-                    <input type="hidden" name="item_name[]" class="item_name">
+                    <input type="hidden" name="item_id[]">
                     <div class="item-typeahead-dropdown"></div>
                   </div>
                   <span class="stock_balance" style="color:green; font-size: 15px;"></span>
@@ -485,219 +470,111 @@ function closeDrawer(id) {
   });
 </script>
 <?php include 'footer.html'; ?>
-<!-- Supplier typeahead: type code or name, choose from list (no plugin) -->
 <script>
 (function() {
-  if (typeof suppliersList === 'undefined') suppliersList = [];
-
-  function displayText(s) { return s.supplier_id + ' - ' + s.supplier_name; }
-
-  function filterSuppliers(q) {
-    q = (q || '').trim().toLowerCase();
-    if (!q) return suppliersList.slice(0, 50);
-    return suppliersList.filter(function(s) {
-      var text = (s.supplier_id + ' - ' + (s.supplier_name || '')).toLowerCase();
-      return text === q ||
-             (s.supplier_id && s.supplier_id.toString().toLowerCase().indexOf(q) !== -1) ||
-             (s.supplier_name && s.supplier_name.toLowerCase().indexOf(q) !== -1);
-    }).slice(0, 50);
+  var searchTimeout;
+  function displayText(s) { return (s.supplier_id || '') + ' - ' + (s.supplier_name || ''); }
+  function searchSuppliers(q, callback) {
+    if (!q || q.trim() === '') { callback([]); return; }
+    fetch('get_suppliers_search.php?q=' + encodeURIComponent(q.trim())).then(function(r) { return r.json(); })
+      .then(function(d) { callback(d.success && d.results ? d.results : []); }).catch(function() { callback([]); });
   }
-
-  function renderDropdown(dropdownEl, list, onSelect) {
-    dropdownEl.innerHTML = '';
-    if (list.length === 0) {
-      dropdownEl.innerHTML = '<div class="no-result">No matching supplier</div>';
-    } else {
-      list.forEach(function(s) {
-        var div = document.createElement('div');
-        div.className = 'option';
-        div.textContent = displayText(s);
-        div.dataset.id = s.supplier_id;
-        div.dataset.text = displayText(s);
-        div.addEventListener('click', function() {
-          onSelect(s.supplier_id, displayText(s));
+  function initSupplierTypeahead(w) {
+    var input = w.querySelector('.supplier-typeahead-input');
+    var hidden = w.querySelector('input[name="supplier_id"]');
+    var dropdown = w.querySelector('.supplier-typeahead-dropdown');
+    if (!input || !hidden || !dropdown) return;
+    function doSearch() {
+      searchSuppliers(input.value.trim(), function(list) {
+        dropdown.innerHTML = '';
+        if (!list.length) dropdown.innerHTML = '<div class="no-result">No matching supplier</div>';
+        else list.forEach(function(s) {
+          var div = document.createElement('div');
+          div.className = 'option';
+          div.textContent = displayText(s);
+          div.onclick = function() { hidden.value = s.supplier_id || ''; input.value = displayText(s); dropdown.classList.remove('show'); };
+          dropdown.appendChild(div);
         });
-        dropdownEl.appendChild(div);
+        dropdown.classList.add('show');
       });
     }
-    dropdownEl.classList.add('show');
-  }
-
-  function initTypeahead(wrapper) {
-    var input = wrapper.querySelector('.supplier-typeahead-input');
-    var hidden = wrapper.querySelector('input[type="hidden"][name="supplier_id"]');
-    var dropdown = wrapper.querySelector('.supplier-typeahead-dropdown');
-    if (!input || !hidden || !dropdown) return;
-
-    input.addEventListener('input', function() {
+    input.oninput = function() {
+      clearTimeout(searchTimeout);
       var q = input.value.trim();
       if (!q) { hidden.value = ''; dropdown.classList.remove('show'); return; }
-      var list = filterSuppliers(q);
-      renderDropdown(dropdown, list, function(id, text) {
-        hidden.value = id;
-        input.value = text;
-        dropdown.classList.remove('show');
-      });
-    });
-
-    input.addEventListener('focus', function() {
-      var q = input.value.trim();
-      var list = filterSuppliers(q);
-      renderDropdown(dropdown, list, function(id, text) {
-        hidden.value = id;
-        input.value = text;
-        dropdown.classList.remove('show');
-      });
-    });
-
-    input.addEventListener('keydown', function(e) {
+      searchTimeout = setTimeout(doSearch, 300);
+    };
+    input.onfocus = function() { if (input.value.trim()) doSearch(); };
+    input.onkeydown = function(e) {
       if (e.key === 'Escape') { dropdown.classList.remove('show'); return; }
       var opts = dropdown.querySelectorAll('.option');
-      if (opts.length === 0) return;
-      var active = dropdown.querySelector('.option.active');
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        if (!active) { opts[0].classList.add('active'); return; }
-        active.classList.remove('active');
-        var next = active.nextElementSibling;
-        if (next) next.classList.add('active');
-        else opts[0].classList.add('active');
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        if (!active) { opts[opts.length - 1].classList.add('active'); return; }
-        active.classList.remove('active');
-        var prev = active.previousElementSibling;
-        if (prev) prev.classList.add('active');
-        else opts[opts.length - 1].classList.add('active');
-      } else if (e.key === 'Enter' && active) {
-        e.preventDefault();
-        active.click();
-      }
-    });
-
-    document.addEventListener('click', function(e) {
-      if (!wrapper.contains(e.target)) dropdown.classList.remove('show');
-    });
+      if (!opts.length) return;
+      var act = dropdown.querySelector('.option.active');
+      if (e.key === 'ArrowDown') { e.preventDefault(); if (!act) opts[0].classList.add('active'); else { act.classList.remove('active'); (act.nextElementSibling || opts[0]).classList.add('active'); } }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); if (!act) opts[opts.length-1].classList.add('active'); else { act.classList.remove('active'); (act.previousElementSibling || opts[opts.length-1]).classList.add('active'); } }
+      else if (e.key === 'Enter' && act) { e.preventDefault(); act.click(); }
+    };
+    document.addEventListener('click', function(ev) { if (!w.contains(ev.target)) dropdown.classList.remove('show'); });
   }
 
-  document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.supplier-typeahead').forEach(initTypeahead);
-  });
-})();
-</script>
-<!-- Item typeahead: type code or name, choose from list (multiple rows) -->
-<script>
-(function() {
-  if (typeof itemsList === 'undefined') itemsList = [];
-
-  function itemDisplayText(it) { return (it.item_id || '') + ' - ' + (it.item_name || ''); }
-
-  function filterItems(q) {
-    q = (q || '').trim().toLowerCase();
-    if (!q) return itemsList.slice(0, 50);
-    return itemsList.filter(function(it) {
-      var text = itemDisplayText(it).toLowerCase();
-      return text === q ||
-             (it.item_id && it.item_id.toString().toLowerCase().indexOf(q) !== -1) ||
-             (it.item_name && it.item_name.toLowerCase().indexOf(q) !== -1);
-    }).slice(0, 50);
+  function searchItems(q, done) {
+    if (!q || q.trim() === '') { done([]); return; }
+    fetch('get_items_search.php?q=' + encodeURIComponent(q.trim())).then(function(r) { return r.json(); })
+      .then(function(d) { done(d.success && d.results ? d.results : []); }).catch(function() { done([]); });
   }
-
-  function renderItemDropdown(dropdownEl, list, onSelect) {
-    dropdownEl.innerHTML = '';
-    if (list.length === 0) {
-      dropdownEl.innerHTML = '<div class="no-result">No matching item</div>';
-    } else {
-      list.forEach(function(it) {
-        var div = document.createElement('div');
-        div.className = 'option';
-        div.textContent = itemDisplayText(it);
-        div.addEventListener('click', function() { onSelect(it); });
-        dropdownEl.appendChild(div);
-      });
-    }
-    dropdownEl.classList.add('show');
-  }
-
-  function initItemTypeahead(wrapper) {
-    if (!wrapper) return;
-    var input = wrapper.querySelector('.item-typeahead-input');
-    var hiddenId = wrapper.querySelector('input.item_id');
-    var hiddenName = wrapper.querySelector('input.item_name');
-    var dropdown = wrapper.querySelector('.item-typeahead-dropdown');
-    var row = wrapper.closest('.item-row');
+  function initItemTypeahead(w) {
+    var input = w.querySelector('.item-typeahead-input');
+    var hidden = w.querySelector('input[name="item_id[]"]');
+    var dropdown = w.querySelector('.item-typeahead-dropdown');
+    var row = w.closest('.item-row');
     var priceInput = row ? row.querySelector('.original_price') : null;
     var stockSpan = row ? row.querySelector('.stock_balance') : null;
-    if (!input || !hiddenId || !hiddenName || !dropdown) return;
-
-    function onSelectItem(it) {
-      hiddenId.value = it.item_id || '';
-      hiddenName.value = it.item_name || '';
-      input.value = itemDisplayText(it);
-      if (priceInput !== null) priceInput.value = it.original_price != null ? it.original_price : '';
-      dropdown.classList.remove('show');
-      if (stockSpan) {
-        stockSpan.innerText = '';
-        fetch('get_item_by_id.php?item_id=' + encodeURIComponent(it.item_id))
-          .then(function(r) { return r.json(); })
-          .then(function(data) {
-            if (data.success && stockSpan) stockSpan.innerText = 'Balance Qty is ' + (data.stock_balance || 0) + ' pcs';
-          })
-          .catch(function() {});
-      }
+    if (!input || !hidden || !dropdown) return;
+    function render(list) {
+      dropdown.innerHTML = '';
+      if (!list.length) dropdown.innerHTML = '<div class="no-result">No matching item</div>';
+      else list.forEach(function(x) {
+        var div = document.createElement('div');
+        div.className = 'option';
+        div.textContent = (x.item_id || '') + ' - ' + (x.item_name || '');
+        div.onclick = function() {
+          hidden.value = x.item_id || '';
+          input.value = (x.item_id || '') + ' - ' + (x.item_name || '');
+          if (priceInput) priceInput.value = x.original_price != null ? x.original_price : '';
+          dropdown.classList.remove('show');
+          if (stockSpan) {
+            stockSpan.innerText = '';
+            fetch('get_item_by_id.php?item_id=' + encodeURIComponent(x.item_id)).then(function(r) { return r.json(); })
+              .then(function(d) { if (d.success && stockSpan) stockSpan.innerText = 'Balance Qty is ' + (d.stock_balance || 0) + ' pcs'; }).catch(function() {});
+          }
+        };
+        dropdown.appendChild(div);
+      });
+      dropdown.classList.add('show');
     }
-
-    input.addEventListener('input', function() {
+    input.oninput = function() {
+      clearTimeout(searchTimeout);
       var q = input.value.trim();
-      if (!q) {
-        hiddenId.value = '';
-        hiddenName.value = '';
-        if (priceInput) priceInput.value = '';
-        if (stockSpan) stockSpan.innerText = '';
-        dropdown.classList.remove('show');
-        return;
-      }
-      var list = filterItems(q);
-      renderItemDropdown(dropdown, list, onSelectItem);
-    });
-
-    input.addEventListener('focus', function() {
-      var q = input.value.trim();
-      var list = filterItems(q);
-      renderItemDropdown(dropdown, list, onSelectItem);
-    });
-
-    input.addEventListener('keydown', function(e) {
+      if (!q) { hidden.value = ''; if (priceInput) priceInput.value = ''; if (stockSpan) stockSpan.innerText = ''; dropdown.classList.remove('show'); return; }
+      searchTimeout = setTimeout(function() { searchItems(q, render); }, 300);
+    };
+    input.onfocus = function() { if (input.value.trim()) searchItems(input.value.trim(), render); };
+    input.onkeydown = function(e) {
       if (e.key === 'Escape') { dropdown.classList.remove('show'); return; }
       var opts = dropdown.querySelectorAll('.option');
-      if (opts.length === 0) return;
-      var active = dropdown.querySelector('.option.active');
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        if (!active) { opts[0].classList.add('active'); return; }
-        active.classList.remove('active');
-        var next = active.nextElementSibling;
-        if (next) next.classList.add('active'); else opts[0].classList.add('active');
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        if (!active) { opts[opts.length - 1].classList.add('active'); return; }
-        active.classList.remove('active');
-        var prev = active.previousElementSibling;
-        if (prev) prev.classList.add('active'); else opts[opts.length - 1].classList.add('active');
-      } else if (e.key === 'Enter' && active) {
-        e.preventDefault();
-        active.click();
-      }
-    });
-
-    document.addEventListener('click', function(e) {
-      if (!wrapper.contains(e.target)) dropdown.classList.remove('show');
-    });
+      if (!opts.length) return;
+      var act = dropdown.querySelector('.option.active');
+      if (e.key === 'ArrowDown') { e.preventDefault(); if (!act) opts[0].classList.add('active'); else { act.classList.remove('active'); (act.nextElementSibling || opts[0]).classList.add('active'); } }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); if (!act) opts[opts.length-1].classList.add('active'); else { act.classList.remove('active'); (act.previousElementSibling || opts[opts.length-1]).classList.add('active'); } }
+      else if (e.key === 'Enter' && act) { e.preventDefault(); act.click(); }
+    };
+    document.addEventListener('click', function(ev) { if (!w.contains(ev.target)) dropdown.classList.remove('show'); });
   }
 
   document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.supplier-typeahead').forEach(initSupplierTypeahead);
     document.querySelectorAll('.item-typeahead').forEach(initItemTypeahead);
+    window.initItemTypeahead = initItemTypeahead;
   });
-  window.initItemTypeahead = initItemTypeahead;
 })();
 </script>

@@ -168,7 +168,29 @@ require '../Config/common.php';
   $temp_purchase_itemstmt = $pdo->prepare("SELECT * FROM temp_purchase_items WHERE grn_no='$grn_no' ORDER BY id DESC");
   $temp_purchase_itemstmt->execute();
   $temp_purchase_itemresult = $temp_purchase_itemstmt->fetchAll();
+
+  $supplier_display = '';
+  if (!empty($temp_purchaseresult['supplier_id'])) {
+    $supStmt = $pdo->prepare("SELECT supplier_name FROM supplier WHERE supplier_id = ?");
+    $supStmt->execute([$temp_purchaseresult['supplier_id']]);
+    $supRow = $supStmt->fetch(PDO::FETCH_ASSOC);
+    $supplier_display = $temp_purchaseresult['supplier_id'] . ' - ' . ($supRow['supplier_name'] ?? '');
+  }
   ?>
+<style>
+.supplier-typeahead { position: relative; }
+.supplier-typeahead-dropdown { position: absolute; left: 0; right: 0; top: 100%; z-index: 1000; max-height: 220px; overflow-y: auto; background: #fff; border: 1px solid #ced4da; border-top: none; border-radius: 0 0 4px 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none; }
+.supplier-typeahead-dropdown.show { display: block; }
+.supplier-typeahead-dropdown .option { padding: 8px 12px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee; }
+.supplier-typeahead-dropdown .option:hover, .supplier-typeahead-dropdown .option.active { background: #e9ecef; }
+.supplier-typeahead-dropdown .no-result { padding: 10px 12px; color: #6c757d; font-size: 14px; }
+.item-typeahead { position: relative; }
+.item-typeahead-dropdown { position: absolute; left: 0; right: 0; top: 100%; z-index: 1000; max-height: 220px; overflow-y: auto; background: #fff; border: 1px solid #ced4da; border-top: none; border-radius: 0 0 4px 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none; }
+.item-typeahead-dropdown.show { display: block; }
+.item-typeahead-dropdown .option { padding: 8px 12px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee; }
+.item-typeahead-dropdown .option:hover, .item-typeahead-dropdown .option.active { background: #e9ecef; }
+.item-typeahead-dropdown .no-result { padding: 10px 12px; color: #6c757d; font-size: 14px; }
+</style>
     
     <div class="col-md-12 px-3 pt-1">
       <div class="collapse show">
@@ -220,14 +242,14 @@ require '../Config/common.php';
                 </div>
                 </div>
               
-                <div class="col-2">
-                  <label for="">Supplier_Id</label>
-                  <input type="text" id="supplier_id" oninput="fetchSupplierNameFromId()" class="form-control" placeholder="Supplier_Id" name="supplier_id" value="<?php echo $temp_purchaseresult['supplier_id']; ?>" <?php echo $isReadOnly; ?>>
+                <div class="col-4">
+                  <label for="">Supplier</label>
+                  <div class="supplier-typeahead" id="supplier_typeahead_main">
+                    <input type="text" class="form-control supplier-typeahead-input" placeholder="Type supplier code or name..." value="<?php echo htmlspecialchars($supplier_display); ?>" autocomplete="off" <?php echo $isReadOnly; ?>>
+                    <input type="hidden" name="supplier_id" value="<?php echo htmlspecialchars($temp_purchaseresult['supplier_id'] ?? ''); ?>">
+                    <div class="supplier-typeahead-dropdown"></div>
+                  </div>
                   <p style="color:red;"><?php echo empty($supplier_idError) ? '' : '*'.$supplier_idError;?></p>
-                </div>
-                <div class="col-2">
-                  <label for="">Supplier_Name</label>
-                  <input type="text" id="supplier_name" class="form-control" placeholder="Supplier_Name" name="supplier_name" oninput="fetchSupplierIdFromName()" <?php echo $isReadOnly; ?>>
                 </div>
                 <div class="col-2">
                   <label for="">Payment</label>
@@ -241,8 +263,7 @@ require '../Config/common.php';
                   <table class="table table-hover table-bordered">
                     <thead class="table-sm" style="background-color: #f4f4f4;">
                     <tr>
-                        <th>Item id</th>
-                        <th>Item Name</th>
+                        <th>Item</th>
                         <th class="text-right">Price</th>
                         <th class="text-right">Discount %</th>
                         <th class="text-right">Qty</th>
@@ -260,22 +281,15 @@ require '../Config/common.php';
                               $itemIdstmt = $pdo->prepare("SELECT * FROM item WHERE item_id='$item_id'");
                               $itemIdstmt->execute();
                               $itemIdResult = $itemIdstmt->fetch(PDO::FETCH_ASSOC);
+                              $item_display = ($item_id ?? '') . ' - ' . ($itemIdResult['item_name'] ?? '');
                       ?>
                       <tr class="item-row" style="font-size: 15px;">
-                          <td class="no-padding"> 
-                            <input type="text" 
-                                  value="<?php echo $item_id; ?>" 
-                                  class="custom-input item_id" 
-                                  name="item_id[]" 
-                                  oninput="fetchItemNameFromId(this)" <?php echo $isReadOnly; ?>>
-                          </td>
-
-                          <td class="no-padding">
-                            <input type="text" 
-                                  value="<?php echo $itemIdResult['item_name']; ?>" 
-                                  class="custom-input item_name" 
-                                  name="item_name[]" 
-                                  oninput="fetchItemIdFromName(this)" <?php echo $isReadOnly; ?>>
+                          <td class="no-padding" style="min-width: 250px;">
+                            <div class="item-typeahead">
+                              <input type="text" class="custom-input item-typeahead-input" placeholder="Type item code or name..." value="<?php echo htmlspecialchars($item_display); ?>" autocomplete="off" <?php echo $isReadOnly; ?>>
+                              <input type="hidden" name="item_id[]" value="<?php echo htmlspecialchars($item_id); ?>">
+                              <div class="item-typeahead-dropdown"></div>
+                            </div>
                           </td>
 
                           <td class="no-padding">
@@ -355,4 +369,84 @@ require '../Config/common.php';
         </form>
       </div>
     </div>
+<script>
+(function() {
+  var searchTimeout;
+  function displayText(s) { return (s.supplier_id || '') + ' - ' + (s.supplier_name || ''); }
+  function searchSuppliers(q, callback) {
+    if (!q || q.trim() === '') { callback([]); return; }
+    fetch('get_suppliers_search.php?q=' + encodeURIComponent(q.trim())).then(function(r) { return r.json(); })
+      .then(function(d) { callback(d.success && d.results ? d.results : []); }).catch(function() { callback([]); });
+  }
+  function initSupplierTypeahead(w) {
+    var input = w.querySelector('.supplier-typeahead-input');
+    var hidden = w.querySelector('input[name="supplier_id"]');
+    var dropdown = w.querySelector('.supplier-typeahead-dropdown');
+    if (!input || !hidden || !dropdown || input.readOnly) return;
+    function doSearch() {
+      searchSuppliers(input.value.trim(), function(list) {
+        dropdown.innerHTML = '';
+        if (!list.length) dropdown.innerHTML = '<div class="no-result">No matching supplier</div>';
+        else list.forEach(function(s) {
+          var div = document.createElement('div');
+          div.className = 'option';
+          div.textContent = displayText(s);
+          div.onclick = function() { hidden.value = s.supplier_id || ''; input.value = displayText(s); dropdown.classList.remove('show'); };
+          dropdown.appendChild(div);
+        });
+        dropdown.classList.add('show');
+      });
+    }
+    input.oninput = function() {
+      clearTimeout(searchTimeout);
+      var q = input.value.trim();
+      if (!q) { hidden.value = ''; dropdown.classList.remove('show'); return; }
+      searchTimeout = setTimeout(doSearch, 300);
+    };
+    input.onfocus = function() { if (input.value.trim()) doSearch(); };
+    document.addEventListener('click', function(ev) { if (!w.contains(ev.target)) dropdown.classList.remove('show'); });
+  }
+  function initItemTypeahead(w) {
+    var input = w.querySelector('.item-typeahead-input');
+    var hidden = w.querySelector('input[name="item_id[]"]');
+    var dropdown = w.querySelector('.item-typeahead-dropdown');
+    if (!input || !hidden || !dropdown || input.readOnly) return;
+    function search(q, done) {
+      fetch('get_items_search.php?q=' + encodeURIComponent((q || '').trim())).then(function(r) { return r.json(); })
+        .then(function(d) { done(d.success && d.results ? d.results : []); }).catch(function() { done([]); });
+    }
+    function render(list) {
+      dropdown.innerHTML = '';
+      if (!list.length) dropdown.innerHTML = '<div class="no-result">No matching item</div>';
+      else list.forEach(function(x) {
+        var div = document.createElement('div');
+        div.className = 'option';
+        div.textContent = (x.item_id || '') + ' - ' + (x.item_name || '');
+        div.onclick = function() {
+          var row = w.closest('.item-row');
+          hidden.value = x.item_id || '';
+          input.value = (x.item_id || '') + ' - ' + (x.item_name || '');
+          var priceInput = row ? row.querySelector('.original_price') : null;
+          if (priceInput) { priceInput.value = x.original_price != null ? x.original_price : ''; priceInput.dispatchEvent(new Event('input')); }
+          dropdown.classList.remove('show');
+        };
+        dropdown.appendChild(div);
+      });
+      dropdown.classList.add('show');
+    }
+    input.oninput = function() {
+      clearTimeout(searchTimeout);
+      var q = input.value.trim();
+      if (!q) { hidden.value = ''; dropdown.classList.remove('show'); return; }
+      searchTimeout = setTimeout(function() { search(q, render); }, 300);
+    };
+    input.onfocus = function() { if (input.value.trim()) search(input.value.trim(), render); };
+    document.addEventListener('click', function(ev) { if (!w.contains(ev.target)) dropdown.classList.remove('show'); });
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.supplier-typeahead').forEach(initSupplierTypeahead);
+    document.querySelectorAll('.item-typeahead').forEach(initItemTypeahead);
+  });
+})();
+</script>
 <?php include 'footer.html'; ?>

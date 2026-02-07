@@ -53,45 +53,14 @@ $drawerToOpen = null;
   $Sale_order_itemstmt->execute();
   $Sale_order_itemdatas = $Sale_order_itemstmt->fetchAll();
 ?>
-<script>
-  function fetchItemNameFromIdDrawer(id) {
-    let itemId = document.getElementById("item_id"+id).value.trim();
-    if(itemId!=="") {
-      fetch("get_item_by_id.php?item_id="+encodeURIComponent(itemId))
-      .then(res=>res.json())
-      .then(data=>{
-        if(data.success){
-          document.getElementById("item_name"+id).value = data.item_name;
-          document.getElementById("selling_price"+id).value = data.selling_price;
-          document.getElementById("stock_balance"+id).innerText = "Balance Qty is "+data.stock_balance+" pcs";
-        } else {
-          document.getElementById("item_name"+id).value = "";
-          document.getElementById("selling_price"+id).value = "";
-          document.getElementById("stock_balance"+id).innerText = ""; 
-        }
-      });
-    }
-  }
-
-  function fetchItemIdFromNameDrawer(id) {
-    let itemName = document.getElementById("item_name"+id).value.trim();
-    if(itemName!=="") {
-      fetch("get_item_by_name.php?item_name="+encodeURIComponent(itemName))
-      .then(res=>res.json())
-      .then(data=>{
-        if(data.success){
-          document.getElementById("item_id"+id).value = data.item_id;
-          document.getElementById("selling_price"+id).value = data.selling_price;
-          document.getElementById("stock_balance"+id).innerText = "Balance Qty is "+data.stock_balance+" pcs";
-        } else {
-          document.getElementById("item_id"+id).value = "";
-          document.getElementById("selling_price"+id).value = "";
-          document.getElementById("stock_balance"+id).innerText = "";
-        }
-      });
-    }
-  }
-</script>
+<style>
+.item-typeahead { position: relative; }
+.item-typeahead-dropdown { position: absolute; left: 0; right: 0; top: 100%; z-index: 1000; max-height: 220px; overflow-y: auto; background: #fff; border: 1px solid #ced4da; border-top: none; border-radius: 0 0 4px 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none; }
+.item-typeahead-dropdown.show { display: block; }
+.item-typeahead-dropdown .option { padding: 8px 12px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee; }
+.item-typeahead-dropdown .option:hover, .item-typeahead-dropdown .option.active { background: #e9ecef; }
+.item-typeahead-dropdown .no-result { padding: 10px 12px; color: #6c757d; font-size: 14px; }
+</style>
   <div class="col-md-12 mt-4 px-3 pt-1">
     <div class="d-flex justify-content-between">
       <h4 class="mb-3">Sale Order Item Details</h4>
@@ -156,17 +125,18 @@ $drawerToOpen = null;
 
                     <!-- Third Row -->
                     <div class="row mb-3">
-                      <div class="col-md-6">
-                        <label class="form-label">Item Id</label>
-                        <input type="text" id="item_id<?php echo $value['id']; ?>" class="form-control" name="item_id" value="<?php echo $value['item_id']; ?>" 
-                          oninput="fetchItemNameFromIdDrawer(<?php echo $value['id']; ?>)">
+                      <div class="col-md-12">
+                        <label class="form-label">Item</label>
+                        <?php 
+                          $item_display = ($value['item_id'] ?? '') . ' - ' . ($itemIdResult['item_name'] ?? '');
+                        ?>
+                        <div class="item-typeahead item-typeahead-drawer" data-drawer-id="<?php echo $value['id']; ?>">
+                          <input type="text" class="form-control item-typeahead-input" placeholder="Type item code or name..." value="<?php echo htmlspecialchars($item_display); ?>" autocomplete="off">
+                          <input type="hidden" name="item_id" value="<?php echo htmlspecialchars($value['item_id']); ?>">
+                          <div class="item-typeahead-dropdown"></div>
+                        </div>
                         <span style="color:red;"><?php echo empty($item_idErrorDrawer) ? '' : '*'.$item_idErrorDrawer; ?></span>
-                        <small id="stock_balance<?php echo $value['id']; ?>" class="text-success"></small>
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label">Item Name</label>
-                        <input type="text" id="item_name<?php echo $value['id']; ?>" class="form-control" 
-                          oninput="fetchItemIdFromNameDrawer(<?php echo $value['id']; ?>)">
+                        <small class="stock_balance text-success"></small>
                       </div>
                     </div>
 
@@ -246,5 +216,65 @@ function closeDrawer(id) {
           });
       });
   });
+</script>
+<script>
+(function() {
+  var searchTimeout;
+  function initItemTypeahead(w) {
+    var input = w.querySelector('.item-typeahead-input');
+    var hidden = w.querySelector('input[name="item_id"]');
+    var dropdown = w.querySelector('.item-typeahead-dropdown');
+    if (!input || !hidden || !dropdown) return;
+    function search(q, done) {
+      fetch('get_items_search.php?q=' + encodeURIComponent((q || '').trim())).then(function(r) { return r.json(); })
+        .then(function(d) { done(d.success && d.results ? d.results : []); }).catch(function() { done([]); });
+    }
+    function render(list) {
+      dropdown.innerHTML = '';
+      if (!list.length) dropdown.innerHTML = '<div class="no-result">No matching item</div>';
+      else list.forEach(function(x) {
+        var div = document.createElement('div');
+        div.className = 'option';
+        div.textContent = (x.item_id || '') + ' - ' + (x.item_name || '');
+        div.onclick = function() {
+          hidden.value = x.item_id || '';
+          input.value = (x.item_id || '') + ' - ' + (x.item_name || '');
+          var form = w.closest('form');
+          var priceInput = form ? form.querySelector('input[name="selling_price"]') : null;
+          var stockSpan = w.querySelector('.stock_balance');
+          if (priceInput) priceInput.value = x.selling_price != null ? x.selling_price : '';
+          if (stockSpan) {
+            stockSpan.innerText = '';
+            fetch('get_item_by_id.php?item_id=' + encodeURIComponent(x.item_id)).then(function(r) { return r.json(); })
+              .then(function(d) { if (d.success && stockSpan) stockSpan.innerText = 'Balance Qty is ' + (d.stock_balance || 0) + ' pcs'; }).catch(function() {});
+          }
+          dropdown.classList.remove('show');
+        };
+        dropdown.appendChild(div);
+      });
+      dropdown.classList.add('show');
+    }
+    input.oninput = function() {
+      clearTimeout(searchTimeout);
+      var q = input.value.trim();
+      if (!q) { hidden.value = ''; dropdown.classList.remove('show'); return; }
+      searchTimeout = setTimeout(function() { search(q, render); }, 300);
+    };
+    input.onfocus = function() { if (input.value.trim()) search(input.value.trim(), render); };
+    input.onkeydown = function(e) {
+      if (e.key === 'Escape') { dropdown.classList.remove('show'); return; }
+      var opts = dropdown.querySelectorAll('.option');
+      if (!opts.length) return;
+      var act = dropdown.querySelector('.option.active');
+      if (e.key === 'ArrowDown') { e.preventDefault(); if (!act) opts[0].classList.add('active'); else { act.classList.remove('active'); (act.nextElementSibling || opts[0]).classList.add('active'); } }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); if (!act) opts[opts.length-1].classList.add('active'); else { act.classList.remove('active'); (act.previousElementSibling || opts[opts.length-1]).classList.add('active'); } }
+      else if (e.key === 'Enter' && act) { e.preventDefault(); act.click(); }
+    };
+    document.addEventListener('click', function(ev) { if (!w.contains(ev.target)) dropdown.classList.remove('show'); });
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.item-typeahead').forEach(initItemTypeahead);
+  });
+})();
 </script>
 <?php include 'footer.html'; ?>

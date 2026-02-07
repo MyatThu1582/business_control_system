@@ -173,68 +173,13 @@ if(isset($_POST['cancel'])){
 .customer-typeahead-dropdown .option:hover, .customer-typeahead-dropdown .option.active { background: #e9ecef; }
 .customer-typeahead-dropdown .option:last-child { border-bottom: none; }
 .customer-typeahead-dropdown .no-result { padding: 10px 12px; color: #6c757d; font-size: 14px; }
+.item-typeahead { position: relative; }
+.item-typeahead-dropdown { position: absolute; left: 0; right: 0; top: 100%; z-index: 1000; max-height: 220px; overflow-y: auto; background: #fff; border: 1px solid #ced4da; border-top: none; border-radius: 0 0 4px 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none; }
+.item-typeahead-dropdown.show { display: block; }
+.item-typeahead-dropdown .option { padding: 8px 12px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee; }
+.item-typeahead-dropdown .option:hover, .item-typeahead-dropdown .option.active { background: #e9ecef; }
+.item-typeahead-dropdown .no-result { padding: 10px 12px; color: #6c757d; font-size: 14px; }
 </style>
-<script>
-function fetchItemNameFromId(input) {
-    const row = input.closest('.item-row'); // find parent row
-    const itemId = input.value.trim();
-
-    const itemNameInput = row.querySelector('.item_name');
-    const priceInput = row.querySelector('.selling_price');
-    const stockSpan = row.querySelector('.stock_balance');
-
-    if (itemId !== "") {
-        fetch("get_item_by_id.php?item_id=" + encodeURIComponent(itemId))
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                itemNameInput.value = data.item_name;
-                stockSpan.innerText = "Balance Qty is " + data.stock_balance + " pcs";
-                priceInput.value = data.selling_price;
-            } else {
-                itemNameInput.value = "";
-                priceInput.value = "";
-                stockSpan.innerText = "";
-            }
-        })
-        .catch(err => console.error("Error fetching item name:", err));
-    } else {
-        itemNameInput.value = "";
-        priceInput.value = "";
-        stockSpan.innerText = "";
-    }
-}
-
-function fetchItemIdFromName(input) {
-    const row = input.closest('.item-row');
-    const itemName = input.value.trim();
-
-    const itemIdInput = row.querySelector('.item_id');
-    const priceInput = row.querySelector('.selling_price');
-    const stockSpan = row.querySelector('.stock_balance');
-
-    if (itemName !== "") {
-        fetch("get_item_by_name.php?item_name=" + encodeURIComponent(itemName))
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                itemIdInput.value = data.item_id;
-                stockSpan.innerText = "Balance Qty is " + data.stock_balance + " pcs";
-                priceInput.value = data.selling_price;
-            } else {
-                itemIdInput.value = "";
-                priceInput.value = "";
-                stockSpan.innerText = "";
-            }
-        })
-        .catch(err => console.error("Error fetching item id:", err));
-    } else {
-        itemIdInput.value = "";
-        priceInput.value = "";
-        stockSpan.innerText = "";
-    }
-}
-</script>
 
   <div class="col-md-12 mt-4 px-3 pt-1">
         <h4 class="mb-3 d-flex align-items-center justify-content-between">
@@ -276,15 +221,14 @@ function fetchItemIdFromName(input) {
           <!-- Second Row -->
           <div id="item-rows">
             <div class="row item-row">
-              <div class="col">
-                <label>Item Code</label>
-                <input type="text" class="form-control item_id" placeholder="Item Code" name="item_id[]" oninput="fetchItemNameFromId(this)">
+              <div class="col" style="min-width: 250px;">
+                <label>Item</label>
+                <div class="item-typeahead">
+                  <input type="text" class="form-control item-typeahead-input" placeholder="Type item code or name..." autocomplete="off">
+                  <input type="hidden" name="item_id[]">
+                  <div class="item-typeahead-dropdown"></div>
+                </div>
                 <span class="stock_balance" style="color:green; font-size: 15px;"></span>
-              </div>
-
-              <div class="col">
-                <label>Item Name</label>
-                <input type="text" class="form-control item_name" placeholder="Item Name" name="item_name[]" oninput="fetchItemIdFromName(this)">
               </div>
 
               <div class="col">
@@ -446,25 +390,27 @@ document.addEventListener('DOMContentLoaded', function () {
     const firstRow = container.querySelector('.item-row');
     const clone = firstRow.cloneNode(true);
 
-    // clear inputs and stock balance
-    clone.querySelectorAll('input').forEach(input => input.value = "");
-    clone.querySelectorAll('.stock_balance').forEach(span => span.innerText = "");
+    clone.querySelectorAll('input').forEach(function(inp) { inp.value = ''; });
+    clone.querySelectorAll('.stock_balance').forEach(function(s) { s.innerText = ''; });
+    var dd = clone.querySelector('.item-typeahead-dropdown');
+    if (dd) { dd.innerHTML = ''; dd.classList.remove('show'); }
 
-    // Add remove button if not exists
     if (!clone.querySelector('.remove-row-btn')) {
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
       removeBtn.className = 'btn btn-danger remove-row-btn';
       removeBtn.textContent = '- Remove';
-      // Create a wrapper div for alignment
       const colDiv = document.createElement('div');
       colDiv.className = 'col-1 mt-4 mr-4';
       colDiv.appendChild(removeBtn);
-
       clone.appendChild(colDiv);
     }
 
     container.appendChild(clone);
+    if (window.initItemTypeahead) {
+      var tw = clone.querySelector('.item-typeahead');
+      if (tw) window.initItemTypeahead(tw);
+    }
   });
 });
 </script>
@@ -602,8 +548,64 @@ function closeDrawer(id) {
     });
   }
 
+  // Item typeahead (sale: selling_price)
+  function initItemTypeahead(w) {
+    var input = w.querySelector('.item-typeahead-input');
+    var hidden = w.querySelector('input[name="item_id[]"]');
+    var dropdown = w.querySelector('.item-typeahead-dropdown');
+    if (!input || !hidden || !dropdown) return;
+    function search(q, done) {
+      fetch('get_items_search.php?q=' + encodeURIComponent((q || '').trim())).then(function(r) { return r.json(); })
+        .then(function(d) { done(d.success && d.results ? d.results : []); }).catch(function() { done([]); });
+    }
+    function render(list) {
+      dropdown.innerHTML = '';
+      if (!list.length) dropdown.innerHTML = '<div class="no-result">No matching item</div>';
+      else list.forEach(function(x) {
+        var div = document.createElement('div');
+        div.className = 'option';
+        div.textContent = (x.item_id || '') + ' - ' + (x.item_name || '');
+        div.onclick = function() {
+          var row = w.closest('.item-row');
+          hidden.value = x.item_id || '';
+          input.value = (x.item_id || '') + ' - ' + (x.item_name || '');
+          var priceInput = row ? row.querySelector('.selling_price') : null;
+          var stockSpan = row ? row.querySelector('.stock_balance') : null;
+          if (priceInput) priceInput.value = x.selling_price != null ? x.selling_price : '';
+          if (stockSpan) {
+            stockSpan.innerText = '';
+            fetch('get_item_by_id.php?item_id=' + encodeURIComponent(x.item_id)).then(function(r) { return r.json(); })
+              .then(function(d) { if (d.success && stockSpan) stockSpan.innerText = 'Balance Qty is ' + (d.stock_balance || 0) + ' pcs'; }).catch(function() {});
+          }
+          dropdown.classList.remove('show');
+        };
+        dropdown.appendChild(div);
+      });
+      dropdown.classList.add('show');
+    }
+    input.oninput = function() {
+      clearTimeout(searchTimeout);
+      var q = input.value.trim();
+      if (!q) { hidden.value = ''; dropdown.classList.remove('show'); return; }
+      searchTimeout = setTimeout(function() { search(q, render); }, 300);
+    };
+    input.onfocus = function() { if (input.value.trim()) search(input.value.trim(), render); };
+    input.onkeydown = function(e) {
+      if (e.key === 'Escape') { dropdown.classList.remove('show'); return; }
+      var opts = dropdown.querySelectorAll('.option');
+      if (!opts.length) return;
+      var act = dropdown.querySelector('.option.active');
+      if (e.key === 'ArrowDown') { e.preventDefault(); if (!act) opts[0].classList.add('active'); else { act.classList.remove('active'); (act.nextElementSibling || opts[0]).classList.add('active'); } }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); if (!act) opts[opts.length-1].classList.add('active'); else { act.classList.remove('active'); (act.previousElementSibling || opts[opts.length-1]).classList.add('active'); } }
+      else if (e.key === 'Enter' && act) { e.preventDefault(); act.click(); }
+    };
+    document.addEventListener('click', function(ev) { if (!w.contains(ev.target)) dropdown.classList.remove('show'); });
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.customer-typeahead').forEach(initCustomerTypeahead);
+    document.querySelectorAll('.item-typeahead').forEach(initItemTypeahead);
+    window.initItemTypeahead = initItemTypeahead;
   });
 })();
 </script>

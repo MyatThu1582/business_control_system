@@ -5,7 +5,7 @@ if (empty($_SESSION['user_id'])) {
     exit;
 }
 require '../Config/config.php';
-require '../Config/common.php';
+require '../Config/common.php'; 
 ?>
 
 <?php include 'header.php'; ?>
@@ -219,123 +219,20 @@ if (isset($_POST['add_btn'])) {
     }
 }
 ?>
-<script>
-  // Fetch Customer Name from ID
-  function fetchCustomerNameFromId() {
-      let customerId = document.getElementById("customer_id").value.trim();
-
-      if (customerId !== "") {
-          fetch("get_customer_by_id.php?customer_id=" + encodeURIComponent(customerId))
-          .then(res => res.json())
-          .then(data => {
-              if (data.success) {
-                  document.getElementById("customer_name").value = data.customer_name;
-              } else {
-                  document.getElementById("customer_name").value = "";
-              }
-          })
-          .catch(err => console.error("Error fetching customer name:", err));
-      } else {
-          document.getElementById("customer_name").value = "";
-      }
-  }
-
-  // Fetch Customer ID from Name
-  function fetchCustomerIdFromName() {
-      let customerName = document.getElementById("customer_name").value.trim();
-
-      if (customerName !== "") {
-          fetch("get_customer_by_name.php?customer_name=" + encodeURIComponent(customerName))
-          .then(res => res.json())
-          .then(data => {
-              if (data.success) {
-                  document.getElementById("customer_id").value = data.customer_id;
-              } else {
-                  document.getElementById("customer_id").value = "";
-              }
-          })
-          .catch(err => console.error("Error fetching customer ID:", err));
-      } else {
-          document.getElementById("customer_id").value = "";
-      }
-  }
-
-  // Fetch Item Name from ID
-  function fetchItemNameFromId(input) {
-    const row = input.closest('.item-row');
-    const itemId = input.value.trim();
-    const itemNameInput = row.querySelector('.item_name');
-    const priceInput = row.querySelector('.original_price');
-    const stockSpan = row.querySelector('.stock_balance');
-
-    if(itemId!=="") {
-      fetch("get_item_by_id.php?item_id="+encodeURIComponent(itemId))
-        .then(res => res.json())
-        .then(data => {
-          if(data.success){
-            itemNameInput.value = data.item_name;
-            priceInput.value = data.selling_price;
-
-            if (parseInt(data.stock_balance) > 0) {
-              stockSpan.innerText = data.stock_balance;
-              stockSpan.style.color = ""; // keep default color
-            } else {
-              stockSpan.innerText = "Out of Stock";
-              stockSpan.style.color = "red"; // make it red
-            }
-
-
-          } else {
-            itemNameInput.value = "";
-            priceInput.value = "";
-            stockSpan.innerText = "";
-          }
-        });
-    } else {
-      itemNameInput.value = "";
-      priceInput.value = "";
-      stockSpan.innerText = "";
-    }
-  }
-
-  // Fetch Item ID from Name
-  function fetchItemIdFromName(input) {
-    const row = input.closest('.item-row');
-    const itemName = input.value.trim();
-    const itemIdInput = row.querySelector('.item_id');
-    const priceInput = row.querySelector('.original_price');
-    const stockSpan = row.querySelector('.stock_balance');
-
-    if(itemName!=="") {
-      fetch("get_item_by_name.php?item_name="+encodeURIComponent(itemName))
-        .then(res => res.json())
-        .then(data => {
-          if(data.success){
-            itemIdInput.value = data.item_id;
-            priceInput.value = data.selling_price;
-
-            if (parseInt(data.stock_balance) > 0) {
-              stockSpan.innerText = data.stock_balance;
-              stockSpan.style.color = ""; // keep default color
-            } else {
-              stockSpan.innerText = "Out of Stock";
-              stockSpan.style.color = "red"; // make it red
-            }
-
-            
-          } else {
-            itemIdInput.value = "";
-            priceInput.value = "";
-            stockSpan.innerText = "";
-          }
-        });
-    } else {
-      itemIdInput.value = "";
-      priceInput.value = "";
-      stockSpan.innerText = "";
-    }
-  }
-</script>
+<style>
+.customer-typeahead { position: relative; }
+.customer-typeahead-dropdown { position: absolute; left: 0; right: 0; top: 100%; z-index: 1000; max-height: 220px; overflow-y: auto; background: #fff; border: 1px solid #ced4da; border-top: none; border-radius: 0 0 4px 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none; }
+.customer-typeahead-dropdown.show { display: block; }
+.customer-typeahead-dropdown .option { padding: 8px 12px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee; }
+.customer-typeahead-dropdown .option:hover, .customer-typeahead-dropdown .option.active { background: #e9ecef; }
+.customer-typeahead-dropdown .no-result { padding: 10px 12px; color: #6c757d; font-size: 14px; }
+.item-typeahead { position: relative; }
+.item-typeahead-dropdown { position: absolute; left: 0; right: 0; top: 100%; z-index: 1000; max-height: 220px; overflow-y: auto; background: #fff; border: 1px solid #ced4da; border-top: none; border-radius: 0 0 4px 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none; }
+.item-typeahead-dropdown.show { display: block; }
+.item-typeahead-dropdown .option { padding: 8px 12px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee; }
+.item-typeahead-dropdown .option:hover, .item-typeahead-dropdown .option.active { background: #e9ecef; }
+.item-typeahead-dropdown .no-result { padding: 10px 12px; color: #6c757d; font-size: 14px; }
+</style>
 
 <div class="col-md-12 mt-2 px-3 pt-1">
   <div class="collapse show" id="">  
@@ -381,15 +278,14 @@ if (isset($_POST['add_btn'])) {
               </div>
             </div>
 
-            <div class="col-2">
-                <label>Customer ID</label>
-                <input type="text" id="customer_id" class="form-control" name="customer_id" placeholder="Customer ID"
-                        oninput="fetchCustomerNameFromId()">
+            <div class="col-4">
+                <label>Customer</label>
+                <div class="customer-typeahead" id="customer_typeahead_main">
+                  <input type="text" class="form-control customer-typeahead-input" id="customer_display_main" placeholder="Type customer code or name..." autocomplete="off">
+                  <input type="hidden" name="customer_id" id="customer_id_main">
+                  <div class="customer-typeahead-dropdown" id="customer_dropdown_main"></div>
                 </div>
-                <div class="col-2">
-                <label>Customer Name</label>
-                <input type="text" id="customer_name" class="form-control" name="customer_name" placeholder="Customer Name"
-                        oninput="fetchCustomerIdFromName()">
+                <p style="color:red;"><?php echo empty($customer_idError) ? '' : '*'.$customer_idError;?></p>
             </div>
 
             <div class="col-2">
@@ -405,8 +301,7 @@ if (isset($_POST['add_btn'])) {
             <table class="table table-hover table-bordered">
               <thead class="table-sm" style="background-color: #f4f4f4;">
                 <tr>
-                  <th>Item Code</th>
-                  <th>Item Name</th>
+                  <th>Item</th>
                   <th>Price</th>
                   <th style="width: 120px;">In Stock</th>
                   <th class="text-right">Discount %</th>
@@ -417,20 +312,17 @@ if (isset($_POST['add_btn'])) {
               </thead>
               <tbody id="item-rows">
                 <tr class="item-row" style="font-size: 15px;">
+                  <td class="no-padding" style="min-width: 250px;">
+                    <div class="item-typeahead">
+                      <input type="text" class="custom-input item-typeahead-input" placeholder="Type item code or name..." autocomplete="off">
+                      <input type="hidden" name="item_id[]">
+                      <div class="item-typeahead-dropdown"></div>
+                    </div>
+                  </td>
                   <td class="no-padding">
-                    <input type="text" class="custom-input item_id" name="item_id[]" 
-                            oninput="fetchItemNameFromId(this)">
-                    </td>
-                    <td class="no-padding">
-                    <input type="text" class="custom-input item_name" name="item_name[]" 
-                            oninput="fetchItemIdFromName(this)">
-                    </td>
-                    <td class="no-padding">
                     <input type="number" class="custom-input text-right original_price" name="original_price[]">
                   </td>
-                  <td class="text-right">
-                    <span class="stock_balance"></span>
-                  </td>
+                  <td class="text-right"><span class="stock_balance"></span></td>
                   <td class="no-padding"><input type="number" class="custom-input text-right discount" name="discount[]"></td>
                   <td class="no-padding"><input type="number" class="custom-input text-right qty" name="qty[]"></td>
                   <td class="no-padding"><input type="number" class="custom-input text-right foc" name="foc[]"></td>
@@ -465,20 +357,34 @@ if (isset($_POST['add_btn'])) {
 document.addEventListener('DOMContentLoaded', function () {
   const container = document.getElementById('item-rows');
   const addBtn = document.getElementById('add-row-btn');
+  const firstRow = container.querySelector('.item-row');
 
   // Show 5 rows initially
-  const firstRow = container.querySelector('.item-row');
   for (let i = 1; i < 6; i++) {
     const clone = firstRow.cloneNode(true);
-    clone.querySelectorAll('input').forEach(input => input.value = '');
+    clone.querySelectorAll('input').forEach(function(inp) { inp.value = ''; });
+    clone.querySelectorAll('.stock_balance').forEach(function(s) { s.innerText = ''; });
+    var dd = clone.querySelector('.item-typeahead-dropdown');
+    if (dd) { dd.innerHTML = ''; dd.classList.remove('show'); }
     container.appendChild(clone);
+    if (window.initItemTypeahead) {
+      var tw = clone.querySelector('.item-typeahead');
+      if (tw) window.initItemTypeahead(tw);
+    }
   }
 
   // Add row button
   addBtn.addEventListener('click', function () {
     const clone = firstRow.cloneNode(true);
-    clone.querySelectorAll('input').forEach(input => input.value = '');
+    clone.querySelectorAll('input').forEach(function(inp) { inp.value = ''; });
+    clone.querySelectorAll('.stock_balance').forEach(function(s) { s.innerText = ''; });
+    var dd = clone.querySelector('.item-typeahead-dropdown');
+    if (dd) { dd.innerHTML = ''; dd.classList.remove('show'); }
     container.appendChild(clone);
+    if (window.initItemTypeahead) {
+      var tw = clone.querySelector('.item-typeahead');
+      if (tw) window.initItemTypeahead(tw);
+    }
   });
 
   // Remove row
@@ -495,22 +401,16 @@ document.addEventListener('DOMContentLoaded', function () {
   const soSelect = document.getElementById('so_no');
   const itemRowsContainer = document.getElementById('item-rows');
   const addRowBtn = document.getElementById('add-row-btn');
-  const customerIdInput = document.getElementById('customer_id');
-  const customerNameInput = document.getElementById('customer_name');
+  const customerTypeahead = document.getElementById('customer_typeahead_main');
+  const customerInput = customerTypeahead ? customerTypeahead.querySelector('.customer-typeahead-input') : null;
+  const customerHidden = customerTypeahead ? customerTypeahead.querySelector('input[name="customer_id"]') : null;
 
   function toggleInputs() {
     const disable = soSelect.value !== "";
-    itemRowsContainer.querySelectorAll('input').forEach(input => {
-      input.disabled = disable;
-      if (disable) input.value = '';
-    });
+    itemRowsContainer.querySelectorAll('input').forEach(function(inp) { inp.disabled = disable; if (disable) inp.value = ''; });
     addRowBtn.disabled = disable;
-    customerIdInput.disabled = disable;
-    customerNameInput.disabled = disable;
-    if (disable) {
-      customerIdInput.value = '';
-      customerNameInput.value = '';
-    }
+    if (customerInput) { customerInput.disabled = disable; if (disable) customerInput.value = ''; }
+    if (customerHidden) { customerHidden.disabled = disable; if (disable) customerHidden.value = ''; }
   }
 
   soSelect.addEventListener('change', toggleInputs);
@@ -529,6 +429,125 @@ document.addEventListener('input', function(e) {
     amountInput.value = (price * qty).toFixed(2);
   }
 });
+</script>
+
+<script>
+(function() {
+  var searchTimeout;
+  function displayText(c) { return (c.customer_id || '') + ' - ' + (c.customer_name || ''); }
+  function searchCustomers(q, callback) {
+    if (!q || q.trim() === '') { callback([]); return; }
+    fetch('get_customers_search.php?q=' + encodeURIComponent(q.trim())).then(function(r) { return r.json(); })
+      .then(function(d) { callback(d.success && d.results ? d.results : []); }).catch(function() { callback([]); });
+  }
+  function renderDropdown(dd, list, onSelect) {
+    dd.innerHTML = '';
+    if (!list.length) dd.innerHTML = '<div class="no-result">No matching customer</div>';
+    else list.forEach(function(c) {
+      var div = document.createElement('div');
+      div.className = 'option';
+      div.textContent = displayText(c);
+      div.onclick = function() { onSelect(c.customer_id, displayText(c)); };
+      dd.appendChild(div);
+    });
+    dd.classList.add('show');
+  }
+  function initCustomerTypeahead(w) {
+    var input = w.querySelector('.customer-typeahead-input');
+    var hidden = w.querySelector('input[name="customer_id"]');
+    var dropdown = w.querySelector('.customer-typeahead-dropdown');
+    if (!input || !hidden || !dropdown) return;
+    function doSearch() {
+      searchCustomers(input.value.trim(), function(list) {
+        renderDropdown(dropdown, list, function(id, text) {
+          hidden.value = id || ''; input.value = text; dropdown.classList.remove('show');
+        });
+      });
+    }
+    input.oninput = function() {
+      clearTimeout(searchTimeout);
+      var q = input.value.trim();
+      if (!q) { hidden.value = ''; dropdown.classList.remove('show'); return; }
+      searchTimeout = setTimeout(doSearch, 300);
+    };
+    input.onfocus = function() { if (input.value.trim()) doSearch(); };
+    input.onkeydown = function(e) {
+      if (e.key === 'Escape') { dropdown.classList.remove('show'); return; }
+      var opts = dropdown.querySelectorAll('.option');
+      if (!opts.length) return;
+      var act = dropdown.querySelector('.option.active');
+      if (e.key === 'ArrowDown') { e.preventDefault(); if (!act) opts[0].classList.add('active'); else { act.classList.remove('active'); (act.nextElementSibling || opts[0]).classList.add('active'); } }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); if (!act) opts[opts.length-1].classList.add('active'); else { act.classList.remove('active'); (act.previousElementSibling || opts[opts.length-1]).classList.add('active'); } }
+      else if (e.key === 'Enter' && act) { e.preventDefault(); act.click(); }
+    };
+    document.addEventListener('click', function(ev) { if (!w.contains(ev.target)) dropdown.classList.remove('show'); });
+  }
+  // Item typeahead (sale: selling_price)
+  function initItemTypeahead(w) {
+    var input = w.querySelector('.item-typeahead-input');
+    var hidden = w.querySelector('input[name="item_id[]"]');
+    var dropdown = w.querySelector('.item-typeahead-dropdown');
+    if (!input || !hidden || !dropdown) return;
+    function search(q, done) {
+      fetch('get_items_search.php?q=' + encodeURIComponent((q || '').trim())).then(function(r) { return r.json(); })
+        .then(function(d) { done(d.success && d.results ? d.results : []); }).catch(function() { done([]); });
+    }
+    function render(list) {
+      dropdown.innerHTML = '';
+      if (!list.length) dropdown.innerHTML = '<div class="no-result">No matching item</div>';
+      else list.forEach(function(x) {
+        var div = document.createElement('div');
+        div.className = 'option';
+        div.textContent = (x.item_id || '') + ' - ' + (x.item_name || '');
+        div.onclick = function() {
+          var row = w.closest('.item-row');
+          hidden.value = x.item_id || '';
+          input.value = (x.item_id || '') + ' - ' + (x.item_name || '');
+          var priceInput = row ? row.querySelector('.original_price') : null;
+          var stockSpan = row ? row.querySelector('.stock_balance') : null;
+          if (priceInput) priceInput.value = x.selling_price != null ? x.selling_price : '';
+          if (stockSpan) {
+            stockSpan.innerText = '';
+            fetch('get_item_by_id.php?item_id=' + encodeURIComponent(x.item_id)).then(function(r) { return r.json(); })
+              .then(function(d) {
+                if (d.success && stockSpan) {
+                  var bal = parseInt(d.stock_balance, 10);
+                  stockSpan.innerText = bal > 0 ? '' + bal : 'Out of Stock';
+                  stockSpan.style.color = bal > 0 ? '' : 'red';
+                }
+              }).catch(function() {});
+          }
+          dropdown.classList.remove('show');
+          if (priceInput) priceInput.dispatchEvent(new Event('input'));
+        };
+        dropdown.appendChild(div);
+      });
+      dropdown.classList.add('show');
+    }
+    input.oninput = function() {
+      clearTimeout(searchTimeout);
+      var q = input.value.trim();
+      if (!q) { hidden.value = ''; dropdown.classList.remove('show'); return; }
+      searchTimeout = setTimeout(function() { search(q, render); }, 300);
+    };
+    input.onfocus = function() { if (input.value.trim()) search(input.value.trim(), render); };
+    input.onkeydown = function(e) {
+      if (e.key === 'Escape') { dropdown.classList.remove('show'); return; }
+      var opts = dropdown.querySelectorAll('.option');
+      if (!opts.length) return;
+      var act = dropdown.querySelector('.option.active');
+      if (e.key === 'ArrowDown') { e.preventDefault(); if (!act) opts[0].classList.add('active'); else { act.classList.remove('active'); (act.nextElementSibling || opts[0]).classList.add('active'); } }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); if (!act) opts[opts.length-1].classList.add('active'); else { act.classList.remove('active'); (act.previousElementSibling || opts[opts.length-1]).classList.add('active'); } }
+      else if (e.key === 'Enter' && act) { e.preventDefault(); act.click(); }
+    };
+    document.addEventListener('click', function(ev) { if (!w.contains(ev.target)) dropdown.classList.remove('show'); });
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.customer-typeahead').forEach(initCustomerTypeahead);
+    document.querySelectorAll('.item-typeahead').forEach(initItemTypeahead);
+    window.initItemTypeahead = initItemTypeahead;
+  });
+})();
 </script>
 
 <?php include 'footer.html'; ?> 

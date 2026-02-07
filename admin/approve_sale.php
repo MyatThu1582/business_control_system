@@ -133,8 +133,26 @@ require '../Config/common.php';
 
     $temp_sale_itemresult = $pdo->query("SELECT * FROM temp_sale_items WHERE gin_no='$gin_no' ORDER BY id DESC")->fetchAll();
 
+    $customer_display = '';
+    if (!empty($temp_saleresult['customer_id'])) {
+      $custStmt = $pdo->prepare("SELECT customer_name FROM customer WHERE customer_id = ?");
+      $custStmt->execute([$temp_saleresult['customer_id']]);
+      $custRow = $custStmt->fetch(PDO::FETCH_ASSOC);
+      $customer_display = $temp_saleresult['customer_id'] . ' - ' . ($custRow['customer_name'] ?? '');
+    }
   ?>
-    
+<style>
+.customer-typeahead { position: relative; }
+.customer-typeahead-dropdown { position: absolute; left: 0; right: 0; top: 100%; z-index: 1000; max-height: 220px; overflow-y: auto; background: #fff; border: 1px solid #ced4da; border-top: none; border-radius: 0 0 4px 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none; }
+.customer-typeahead-dropdown.show { display: block; }
+.customer-typeahead-dropdown .option { padding: 8px 12px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee; }
+.customer-typeahead-dropdown .option:hover, .customer-typeahead-dropdown .option.active { background: #e9ecef; }
+.item-typeahead { position: relative; }
+.item-typeahead-dropdown { position: absolute; left: 0; right: 0; top: 100%; z-index: 1000; max-height: 220px; overflow-y: auto; background: #fff; border: 1px solid #ced4da; border-top: none; border-radius: 0 0 4px 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none; }
+.item-typeahead-dropdown.show { display: block; }
+.item-typeahead-dropdown .option { padding: 8px 12px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee; }
+.item-typeahead-dropdown .option:hover, .item-typeahead-dropdown .option.active { background: #e9ecef; }
+</style>
     <div class="col-md-12 px-3 pt-1">
   <div class="collapse show">
     <form action="" method="post">
@@ -184,14 +202,14 @@ require '../Config/common.php';
               </div>
             </div>
 
-            <div class="col-2">
-              <label for="">Customer_Id</label>
-              <input type="text" id="customer_id" oninput="fetchCustomerNameFromId()" class="form-control" name="customer_id" value="<?php echo $temp_saleresult['customer_id']; ?>" <?php echo $isReadOnly; ?>>
+            <div class="col-4">
+              <label for="">Customer</label>
+              <div class="customer-typeahead" id="customer_typeahead_main">
+                <input type="text" class="form-control customer-typeahead-input" placeholder="Type customer code or name..." value="<?php echo htmlspecialchars($customer_display); ?>" autocomplete="off" <?php echo $isReadOnly; ?>>
+                <input type="hidden" name="customer_id" value="<?php echo htmlspecialchars($temp_saleresult['customer_id'] ?? ''); ?>">
+                <div class="customer-typeahead-dropdown"></div>
+              </div>
               <p style="color:red;"><?php echo empty($customer_idError) ? '' : '*'.$customer_idError;?></p>
-            </div>
-            <div class="col-2">
-              <label for="">Customer_Name</label>
-              <input type="text" id="customer_name" class="form-control" name="customer_name" oninput="fetchCustomerIdFromName()" <?php echo $isReadOnly; ?>>
             </div>
             <div class="col-2">
               <label for="">Payment</label>
@@ -206,8 +224,7 @@ require '../Config/common.php';
             <table class="table table-hover table-bordered">
               <thead class="table-sm" style="background-color: #f4f4f4;">
                 <tr>
-                  <th>Item id</th>
-                  <th>Item Name</th>
+                  <th>Item</th>
                   <th class="text-right">Price</th>
                   <th class="text-right">Discount %</th>
                   <th class="text-right">Qty</th>
@@ -224,14 +241,15 @@ require '../Config/common.php';
                         $itemIdstmt = $pdo->prepare("SELECT * FROM item WHERE item_id='$item_id'");
                         $itemIdstmt->execute();
                         $itemIdResult = $itemIdstmt->fetch(PDO::FETCH_ASSOC);
+                        $item_display = ($item_id ?? '') . ' - ' . ($itemIdResult['item_name'] ?? '');
                 ?>
                 <tr class="item-row" style="font-size: 15px;">
-                  <td class="no-padding"> 
-                    <input type="text" value="<?php echo $item_id; ?>" class="custom-input item_id" name="item_id[]" oninput="fetchItemNameFromId(this)" <?php echo $isReadOnly; ?>>
-                  </td>
-
-                  <td class="no-padding">
-                    <input type="text" value="<?php echo $itemIdResult['item_name']; ?>" class="custom-input item_name" name="item_name[]" oninput="fetchItemIdFromName(this)" <?php echo $isReadOnly; ?>>
+                  <td class="no-padding" style="min-width: 250px;">
+                    <div class="item-typeahead">
+                      <input type="text" class="custom-input item-typeahead-input" placeholder="Type item code or name..." value="<?php echo htmlspecialchars($item_display); ?>" autocomplete="off" <?php echo $isReadOnly; ?>>
+                      <input type="hidden" name="item_id[]" value="<?php echo htmlspecialchars($item_id); ?>">
+                      <div class="item-typeahead-dropdown"></div>
+                    </div>
                   </td>
 
                   <td class="no-padding">
@@ -294,4 +312,85 @@ require '../Config/common.php';
     </form>
   </div>
 </div>
+<script>
+(function() {
+  var searchTimeout;
+  function displayText(c) { return (c.customer_id || '') + ' - ' + (c.customer_name || ''); }
+  function searchCustomers(q, callback) {
+    if (!q || q.trim() === '') { callback([]); return; }
+    fetch('get_customers_search.php?q=' + encodeURIComponent(q.trim())).then(function(r) { return r.json(); })
+      .then(function(d) { callback(d.success && d.results ? d.results : []); }).catch(function() { callback([]); });
+  }
+  function initCustomerTypeahead(w) {
+    var input = w.querySelector('.customer-typeahead-input');
+    var hidden = w.querySelector('input[name="customer_id"]');
+    var dropdown = w.querySelector('.customer-typeahead-dropdown');
+    if (!input || !hidden || !dropdown || input.readOnly) return;
+    function doSearch() {
+      searchCustomers(input.value.trim(), function(list) {
+        dropdown.innerHTML = '';
+        if (!list.length) dropdown.innerHTML = '<div class="no-result">No matching customer</div>';
+        else list.forEach(function(c) {
+          var div = document.createElement('div');
+          div.className = 'option';
+          div.textContent = displayText(c);
+          div.onclick = function() { hidden.value = c.customer_id || ''; input.value = displayText(c); dropdown.classList.remove('show'); };
+          dropdown.appendChild(div);
+        });
+        dropdown.classList.add('show');
+      });
+    }
+    input.oninput = function() {
+      clearTimeout(searchTimeout);
+      var q = input.value.trim();
+      if (!q) { hidden.value = ''; dropdown.classList.remove('show'); return; }
+      searchTimeout = setTimeout(doSearch, 300);
+    };
+    input.onfocus = function() { if (input.value.trim()) doSearch(); };
+    document.addEventListener('click', function(ev) { if (!w.contains(ev.target)) dropdown.classList.remove('show'); });
+  }
+  function initItemTypeahead(w) {
+    var input = w.querySelector('.item-typeahead-input');
+    var hidden = w.querySelector('input[name="item_id[]"]');
+    var dropdown = w.querySelector('.item-typeahead-dropdown');
+    if (!input || !hidden || !dropdown || input.readOnly) return;
+    function search(q, done) {
+      fetch('get_items_search.php?q=' + encodeURIComponent((q || '').trim())).then(function(r) { return r.json(); })
+        .then(function(d) { done(d.success && d.results ? d.results : []); }).catch(function() { done([]); });
+    }
+    function render(list) {
+      dropdown.innerHTML = '';
+      if (!list.length) dropdown.innerHTML = '<div class="no-result">No matching item</div>';
+      else list.forEach(function(x) {
+        var div = document.createElement('div');
+        div.className = 'option';
+        div.textContent = (x.item_id || '') + ' - ' + (x.item_name || '');
+        div.onclick = function() {
+          var row = w.closest('.item-row');
+          hidden.value = x.item_id || '';
+          input.value = (x.item_id || '') + ' - ' + (x.item_name || '');
+          var priceInput = row ? row.querySelector('.selling_price') : null;
+          if (priceInput) priceInput.value = x.selling_price != null ? x.selling_price : '';
+          dropdown.classList.remove('show');
+          if (priceInput) priceInput.dispatchEvent(new Event('input'));
+        };
+        dropdown.appendChild(div);
+      });
+      dropdown.classList.add('show');
+    }
+    input.oninput = function() {
+      clearTimeout(searchTimeout);
+      var q = input.value.trim();
+      if (!q) { hidden.value = ''; dropdown.classList.remove('show'); return; }
+      searchTimeout = setTimeout(function() { search(q, render); }, 300);
+    };
+    input.onfocus = function() { if (input.value.trim()) search(input.value.trim(), render); };
+    document.addEventListener('click', function(ev) { if (!w.contains(ev.target)) dropdown.classList.remove('show'); });
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.customer-typeahead').forEach(initCustomerTypeahead);
+    document.querySelectorAll('.item-typeahead').forEach(initItemTypeahead);
+  });
+})();
+</script>
 <?php include 'footer.html'; ?>
