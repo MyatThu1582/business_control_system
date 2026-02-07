@@ -9,27 +9,6 @@ require '../Config/common.php';
 
   ?>
  <?php include 'header.php';?>
-
- <style media="screen">
- .outer {
- overflow-y: auto;
- height: 500px;
- }
-
- .outer {
- width: 100%;
- -layout: fixed;
- }
-
- .outer th {
- text-align: left;
- top: 0;
- position: sticky;
- background-color: white;
- }
- </style>
-
-
   <?php
     if (!empty($_GET['pageno'])) {
       $pageno = $_GET['pageno'];
@@ -69,6 +48,18 @@ require '../Config/common.php';
           <h1 class="card-title">Supplier Listings</h1>
         </div>
         <div class="d-flex text-right">
+          <div class="col ms-1">
+            <button type="button" class="btn import-btn btn-sm" data-toggle="modal" data-target="#importModal">
+              Import Excel
+            </button>
+          </div>
+
+          <div class="col text-center">
+            <a href="export_excel.php?table=supplier&search=<?= urlencode($_POST['search'] ?? '') ?>" class="btn export-btn btn-sm">
+              <!-- <img src="images/excel.png" alt="Excel" width="20"> -->
+              Export Excel
+            </a>
+          </div>
           <div class="ml-1">
             <form class="" action="" method="post">
               <div class="input-group">
@@ -83,7 +74,7 @@ require '../Config/common.php';
             </form>
           </div>
           <div class="col">
-            <a href="supplier_add.php" type="button" class="btn btn-purple text-light">+ Create New Supplier</a>
+            <a href="supplier_add.php" type="button" class="btn btn-purple btn-sm text-light">+ Create New Supplier</a>
           </div>
         </div>
       </div>
@@ -163,6 +154,53 @@ require '../Config/common.php';
         </ul>
       </nav>
     </div>
+
+    <!-- Import Modal -->
+    <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <form action="import_supplier.php" method="post" enctype="multipart/form-data">
+          <div class="modal-content">
+            <div class="modal-header bg-light">
+              <h5 class="modal-title" id="importModalLabel">
+                <i class="bi bi-file-earmark-spreadsheet me-2"></i> Import Supplier Excel
+              </h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+              <!-- Instructions -->
+              <div class="mb-3 p-3 border rounded bg-light">
+                <h6><i class="bi bi-info-circle-fill text-primary me-1"></i> How to Import</h6>
+                <ol class="mb-2">
+                  <li><strong>Download Template:</strong> Click the button below <i class="bi bi-download ms-1"></i></li>
+                  <li>Fill in your supplier data. <em class="text-warning">Do not change column headers!</em></li>
+                  <li>Save and upload using the file input below.</li>
+                  <li>Click <strong>Upload</strong> to import the data.</li>
+                </ol>
+                <p class="text-danger mb-0"><strong>Note:</strong> Only the columns in the template will be imported. Extra columns will be ignored.</p>
+              </div>
+
+              <!-- Template Download -->
+              <a href="templates/supplier_template.xlsx" class="btn btn-info btn-sm mb-3">
+                <i class="bi bi-download me-1"></i> Download Template
+              </a>
+
+              <!-- File Input -->
+              <input type="file" name="excel_file" accept=".xlsx,.xls" class="form-control" required>
+            </div>
+
+            <div class="modal-footer">
+              <button type="submit" name="import" class="btn btn-success">
+                <i class="bi bi-upload me-1"></i> Upload
+              </button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+
     <script>
 document.querySelectorAll('.delete-supplier').forEach(button => {
     button.addEventListener('click', function(e) {

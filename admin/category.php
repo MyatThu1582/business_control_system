@@ -60,6 +60,12 @@ if (empty($_POST['search'])) {
       <h1 class="card-title">Category Listings</h1>
     </div>
     <div class="d-flex text-right">
+      <div class="col">
+        <a href="export_excel.php?table=categories&search=<?= urlencode($_POST['search'] ?? '') ?>" class="btn export-btn btn-sm">
+          <!-- <img src="images/excel.png" alt="Excel" width="20"> -->
+          Export Excel
+        </a>
+      </div>
       <div class="ml-1">
         <form action="" method="post">
           <div class="input-group">
@@ -74,7 +80,7 @@ if (empty($_POST['search'])) {
         </form>
       </div>
       <div class="col">
-        <a href="category_add.php" class="btn btn-purple text-light">+ Create New Category</a>
+        <a href="category_add.php" class="btn btn-purple btn-sm text-light">+ Create New Category</a>
       </div>
     </div>
   </div>

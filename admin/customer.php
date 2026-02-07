@@ -48,6 +48,12 @@
           <h1 class="card-title">Customer Listings</h1>
         </div>
         <div class="d-flex text-right">
+          <div class="col">
+            <a href="export_excel.php?table=customer&search=<?= urlencode($_POST['search'] ?? '') ?>" class="export-btn btn btn-sm">
+              <!-- <img src="images/excel.png" alt="Excel" width="20"> -->
+              Export Excel
+            </a>
+          </div>
           <div class="ml-1">
             <form class="" action="" method="post">
               <div class="input-group">
@@ -62,7 +68,7 @@
             </form>
           </div>
           <div class="col">
-            <a href="customer_add.php" type="button" class="btn btn-purple text-light">+ Create New Customer</a>
+            <a href="customer_add.php" type="button" class="btn btn-purple btn-sm text-light">+ Create New Customer</a>
           </div>
         </div>
       </div>
