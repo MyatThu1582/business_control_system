@@ -227,10 +227,11 @@ if (isset($_POST['add_btn'])) {
 .customer-typeahead-dropdown .option:hover, .customer-typeahead-dropdown .option.active { background: #e9ecef; }
 .customer-typeahead-dropdown .no-result { padding: 10px 12px; color: #6c757d; font-size: 14px; }
 .item-typeahead { position: relative; }
-.item-typeahead-dropdown { position: absolute; left: 0; right: 0; top: 100%; z-index: 1000; max-height: 220px; overflow-y: auto; background: #fff; border: 1px solid #ced4da; border-top: none; border-radius: 0 0 4px 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none; }
+.item-typeahead-dropdown { position: absolute; left: 0; top: 100%; z-index: 1000; min-width: 420px; max-height: 280px; overflow-y: auto; background: #fff; border: 1px solid #ced4da; border-top: none; border-radius: 0 0 4px 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none; }
 .item-typeahead-dropdown.show { display: block; }
-.item-typeahead-dropdown .option { padding: 8px 12px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee; }
+.item-typeahead-dropdown .option { padding: 8px 12px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 12px; }
 .item-typeahead-dropdown .option:hover, .item-typeahead-dropdown .option.active { background: #e9ecef; }
+.item-typeahead-dropdown .option img { width: 80px; height: 80px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
 .item-typeahead-dropdown .no-result { padding: 10px 12px; color: #6c757d; font-size: 14px; }
 </style>
 
@@ -498,7 +499,16 @@ document.addEventListener('input', function(e) {
       else list.forEach(function(x) {
         var div = document.createElement('div');
         div.className = 'option';
-        div.textContent = (x.item_id || '') + ' - ' + (x.item_name || '');
+        if (x.item_image) {
+          var img = document.createElement('img');
+          img.src = 'images/' + x.item_image;
+          img.alt = x.item_name || '';
+          img.onerror = function() { this.style.display = 'none'; };
+          div.appendChild(img);
+        }
+        var label = document.createElement('span');
+        label.textContent = (x.item_id || '') + ' - ' + (x.item_name || '');
+        div.appendChild(label);
         div.onclick = function() {
           var row = w.closest('.item-row');
           hidden.value = x.item_id || '';

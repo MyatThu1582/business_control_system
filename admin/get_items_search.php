@@ -11,7 +11,7 @@ if ($q === '') {
 
 $search = '%' . $q . '%';
 $stmt = $pdo->prepare("
-    SELECT item_id, item_name, original_price, selling_price 
+    SELECT item_id, item_name, original_price, selling_price, item_image 
     FROM item 
     WHERE item_id LIKE :q OR item_name LIKE :q2 
     ORDER BY item_name 
