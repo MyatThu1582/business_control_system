@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 06, 2026 at 01:23 PM
+-- Generation Time: Feb 07, 2026 at 06:01 AM
 -- Server version: 10.4.28-MariaDB
 -- PHP Version: 8.2.4
 
@@ -227,20 +227,23 @@ CREATE TABLE `item` (
   `original_price` int(11) NOT NULL,
   `selling_price` int(11) NOT NULL,
   `reorder_level` int(11) NOT NULL,
-  `item_image` varchar(255) DEFAULT NULL
+  `item_image` varchar(255) DEFAULT NULL,
+  `expiry_date` date DEFAULT NULL,
+  `location` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 --
 -- Dumping data for table `item`
 --
 
-INSERT INTO `item` (`id`, `item_id`, `item_name`, `categories_id`, `original_price`, `selling_price`, `reorder_level`, `item_image`) VALUES
-(1, 'ITM-001', 'Essence of chicken', 'CAT-006', 5000, 5500, 5, ''),
-(2, 'ITM-002', 'Albendazole', 'CAT-006', 20, 700, 20, ''),
-(3, 'ITM-003', 'Clarithromucin 250mg', 'CAT-006', 500, 600, 20, ''),
-(4, 'ITM-004', 'Mebendazle 500mg', 'CAT-006', 1300, 1500, 8, ''),
-(5, 'ITM-005', 'Erythromycin Stearate -250mg', 'CAT-006', 200, 250, 100, ''),
-(6, 'ITM-006', 'a ba hta inhlar (big)', 'CAT-006', 2500, 2900, 5, '1770349930_abahta.jfif');
+INSERT INTO `item` (`id`, `item_id`, `item_name`, `categories_id`, `original_price`, `selling_price`, `reorder_level`, `item_image`, `expiry_date`, `location`) VALUES
+(1, 'ITM-001', 'Essence of chicken', 'CAT-006', 5000, 5500, 5, '', NULL, NULL),
+(2, 'ITM-002', 'Albendazole', 'CAT-006', 20, 700, 20, '', NULL, NULL),
+(3, 'ITM-003', 'Clarithromucin 250mg', 'CAT-006', 500, 600, 20, '', NULL, NULL),
+(4, 'ITM-004', 'Mebendazle 500mg', 'CAT-006', 1300, 1500, 8, '', NULL, NULL),
+(5, 'ITM-005', 'Erythromycin Stearate -250mg', 'CAT-006', 200, 250, 100, '', NULL, NULL),
+(6, 'ITM-006', 'a ba hta inhlar (big)', 'CAT-006', 2500, 2900, 5, '1770349930_abahta.jfif', NULL, NULL),
+(8, 'ITM-007', 'Testing', 'CAT-004', 120, 150, 30, '1770434542_images (2).jfif', '2027-02-01', 'Rack A / Section 5');
 
 -- --------------------------------------------------------
 
@@ -320,6 +323,13 @@ CREATE TABLE `purchase_order` (
   `status` varchar(100) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `purchase_order`
+--
+
+INSERT INTO `purchase_order` (`id`, `order_no`, `supplier_id`, `order_date`, `status`) VALUES
+(1, 'PO-221', 'SUP-000', '2026-02-07', 'Delivered');
+
 -- --------------------------------------------------------
 
 --
@@ -335,6 +345,14 @@ CREATE TABLE `purchase_order_items` (
   `order_no` varchar(100) NOT NULL,
   `purchase_orderid` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `purchase_order_items`
+--
+
+INSERT INTO `purchase_order_items` (`id`, `item_id`, `price`, `qty`, `amount`, `order_no`, `purchase_orderid`) VALUES
+(1, 'ITM-002', 20, 75, 1500, 'PO-221', 1),
+(2, 'ITM-003', 500, 50, 25000, 'PO-221', 1);
 
 -- --------------------------------------------------------
 
@@ -622,7 +640,9 @@ INSERT INTO `temp_purchase` (`id`, `date`, `grn_no`, `supplier_id`, `po_no`, `ty
 (6, '2026-02-05', 'GRN-006', 'SUP-000', '', 'cash', 'approved'),
 (7, '2026-02-05', '222', 'SUP-000', '', 'cash', 'approved'),
 (8, '2026-02-05', '223', 'SUP-000', '', 'cash', 'approved'),
-(9, '2026-02-05', '22231', 'SUP-000', '', 'cash', 'approved');
+(9, '2026-02-05', '22231', 'SUP-000', '', 'cash', 'approved'),
+(10, '2026-02-07', '345', 'SUP-002', '', 'cash', 'draft'),
+(11, '2026-02-07', '22232', 'SUP-000', 'PO-221', 'cash', 'draft');
 
 -- --------------------------------------------------------
 
@@ -657,7 +677,11 @@ INSERT INTO `temp_purchase_items` (`id`, `item_id`, `price`, `qty`, `type`, `per
 (6, 'ITM-006', 2500, 2, 'cash', 0, 0, 0, 5000, 'GRN-006', 6),
 (7, 'ITM-006', 2500, 5, 'cash', 0, 0, 0, 12500, '222', 7),
 (8, 'ITM-004', 1300, 100, 'cash', 0, 0, 6, 130000, '223', 8),
-(9, 'ITM-001', 5000, 100, 'cash', 0, 0, 0, 500000, '22231', 9);
+(9, 'ITM-001', 5000, 100, 'cash', 0, 0, 0, 500000, '22231', 9),
+(10, 'ITM-002', 20, 150, 'cash', 0, 0, 0, 3000, '345', 10),
+(11, 'ITM-005', 200, 20, 'cash', 0, 0, 0, 4000, '345', 10),
+(12, 'ITM-002', 20, 75, 'cash', 0, 0, 0, 1500, '22232', 11),
+(13, 'ITM-003', 500, 50, 'cash', 0, 0, 0, 25000, '22232', 11);
 
 -- --------------------------------------------------------
 
@@ -957,7 +981,7 @@ ALTER TABLE `customer`
 -- AUTO_INCREMENT for table `item`
 --
 ALTER TABLE `item`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `payable`
@@ -975,13 +999,13 @@ ALTER TABLE `permissions`
 -- AUTO_INCREMENT for table `purchase_order`
 --
 ALTER TABLE `purchase_order`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `purchase_order_items`
 --
 ALTER TABLE `purchase_order_items`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `purchase_return`
@@ -1035,13 +1059,13 @@ ALTER TABLE `supplier`
 -- AUTO_INCREMENT for table `temp_purchase`
 --
 ALTER TABLE `temp_purchase`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `temp_purchase_items`
 --
 ALTER TABLE `temp_purchase_items`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `temp_sale`

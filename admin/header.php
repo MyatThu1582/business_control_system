@@ -18,7 +18,7 @@ $sale_pages = ['sale_order.php', 'sale.php', 'sale_return.php', 'add_sale.php', 
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="x-ua-compatible" content="ie=edge">
 
-  <title>Zar Ni Min Nwe | Business Control System</title>
+  <title>Zarli Min Nwe | Business Control System</title>
 
   <link href="bootstrap-4.0.0-dist/css/bootstrap.css" rel="stylesheet">
   <link rel="stylesheet" href="plugins/fontawesome-free/css/all.min.css">

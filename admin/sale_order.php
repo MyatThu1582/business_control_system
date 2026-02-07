@@ -159,39 +159,22 @@ if(isset($_POST['cancel'])){
   $sale_orderdata = $sale_orderstmt->fetchAll();
 
  ?>
+<style>
+.customer-typeahead { position: relative; }
+.customer-typeahead-dropdown {
+  position: absolute; left: 0; right: 0; top: 100%; z-index: 1000;
+  max-height: 220px; overflow-y: auto;
+  background: #fff; border: 1px solid #ced4da; border-top: none;
+  border-radius: 0 0 4px 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  display: none;
+}
+.customer-typeahead-dropdown.show { display: block; }
+.customer-typeahead-dropdown .option { padding: 8px 12px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee; }
+.customer-typeahead-dropdown .option:hover, .customer-typeahead-dropdown .option.active { background: #e9ecef; }
+.customer-typeahead-dropdown .option:last-child { border-bottom: none; }
+.customer-typeahead-dropdown .no-result { padding: 10px 12px; color: #6c757d; font-size: 14px; }
+</style>
 <script>
-function fetchCustomerNameFromId() {
-    let customerId = document.getElementById("customer_id").value;
-    if (customerId.trim() === "") return;
-
-    fetch("get_customer_by_id.php?customer_id=" + customerId)
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                document.getElementById("customer_name").value = data.customer_name;
-            } else {
-                document.getElementById("customer_name").value = "";
-            }
-        })
-        .catch(err => console.error("Error:", err));
-}
-
-function fetchCustomerIdFromName() {
-    let customerName = document.getElementById("customer_name").value;
-    if (customerName.trim() === "") return;
-
-    fetch("get_customer_by_name.php?customer_name=" + customerName)
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                document.getElementById("customer_id").value = data.customer_id;
-            } else {
-                document.getElementById("customer_id").value = "";
-            }
-        })
-        .catch(err => console.error("Error:", err));
-}
-
 function fetchItemNameFromId(input) {
     const row = input.closest('.item-row'); // find parent row
     const itemId = input.value.trim();
@@ -251,29 +234,6 @@ function fetchItemIdFromName(input) {
         stockSpan.innerText = "";
     }
 }
-// FOR DRAWER
-function fetchCustomerNameFromIdDrawer(id) {
-  let customerId = document.getElementById("customer_id"+id).value.trim();
-  if(customerId!=="") {
-    fetch("get_customer_by_id.php?customer_id="+customerId)
-    .then(res=>res.json())
-    .then(data=>{
-      document.getElementById("customer_name"+id).value = data.success ? data.customer_name : "";
-    });
-  }
-}
-
-function fetchCustomerIdFromNameDrawer(id) {
-  let customerName = document.getElementById("customer_name"+id).value.trim();
-  if(customerName!=="") {
-    fetch("get_customer_by_name.php?customer_name="+encodeURIComponent(customerName))
-    .then(res=>res.json())
-    .then(data=>{
-      document.getElementById("customer_id"+id).value = data.success ? data.customer_id : "";
-    });
-  }
-}
-
 </script>
 
   <div class="col-md-12 mt-4 px-3 pt-1">
@@ -303,14 +263,14 @@ function fetchCustomerIdFromNameDrawer(id) {
               </div>
               <p style="color:red;"><?php echo empty($vr_noError) ? '' : '*'.$vr_noError;?></p>
             </div>
-            <div class="col-3">
-              <label for="" class="mt-4">Customer Code</label>
-              <input type="text" id="customer_id" oninput="fetchCustomerNameFromId()" class="form-control" placeholder="Customer code" name="customer_id" >
+            <div class="col-6">
+              <label for="customer_display_main" class="mt-4">Customer</label>
+              <div class="customer-typeahead" id="customer_typeahead_main">
+                <input type="text" class="form-control customer-typeahead-input" id="customer_display_main" placeholder="Type customer code or name..." autocomplete="off">
+                <input type="hidden" name="customer_id" id="customer_id_main">
+                <div class="customer-typeahead-dropdown" id="customer_dropdown_main"></div>
+              </div>
               <p style="color:red;"><?php echo empty($customer_idError) ? '' : '*'.$customer_idError;?></p>
-            </div>
-            <div class="col-3">
-              <label for="" class="mt-4">Customer Name</label>
-              <input type="text" id="customer_name" class="form-control" placeholder="Customer Name" name="customer_name" oninput="fetchCustomerIdFromName()">
             </div>
           </div>
           <!-- Second Row -->
@@ -433,16 +393,14 @@ function fetchCustomerIdFromNameDrawer(id) {
 
                   <!-- Second Row -->
                   <div class="row mb-3">
-                    <div class="col-md-6">
-                      <label class="form-label">Customer Id</label>
-                      <input type="text" id="customer_id<?php echo $value['id']; ?>" class="form-control" name="customer_id" value="<?php echo $value['customer_id']; ?>" 
-                        oninput="fetchCustomerNameFromIdDrawer(<?php echo $value['id']; ?>)">
+                    <div class="col-md-12">
+                      <label class="form-label">Customer</label>
+                      <div class="customer-typeahead customer-typeahead-drawer" data-drawer-id="<?php echo $value['id']; ?>">
+                        <input type="text" class="form-control customer-typeahead-input" id="customer_display_<?php echo $value['id']; ?>" placeholder="Type customer code or name..." value="<?php echo htmlspecialchars($value['customer_id'] . ' - ' . ($customerIdResult['customer_name'] ?? '')); ?>" autocomplete="off">
+                        <input type="hidden" name="customer_id" value="<?php echo htmlspecialchars($value['customer_id']); ?>">
+                        <div class="customer-typeahead-dropdown" id="customer_dropdown_<?php echo $value['id']; ?>"></div>
+                      </div>
                       <span style="color:red;"><?php echo empty($customer_idErrorDrawer) ? '' : '*'.$customer_idErrorDrawer; ?></span>
-                    </div>
-                    <div class="col-md-6">
-                      <label class="form-label">Customer Name</label>
-                      <input type="text" id="customer_name<?php echo $value['id']; ?>" class="form-control" 
-                        oninput="fetchCustomerIdFromNameDrawer(<?php echo $value['id']; ?>)">
                     </div>
                   </div>
 
@@ -548,3 +506,104 @@ function closeDrawer(id) {
   });
 </script>
 <?php include 'footer.html'; ?>
+<!-- Customer AJAX typeahead: search on server when typing (no pre-loaded list) -->
+<script>
+(function() {
+  var searchTimeout;
+  function displayText(c) { return (c.customer_id || '') + ' - ' + (c.customer_name || ''); }
+
+  function searchCustomers(q, callback) {
+    if (!q || q.trim() === '') { callback([]); return; }
+    fetch('get_customers_search.php?q=' + encodeURIComponent(q.trim()))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        callback(data.success && data.results ? data.results : []);
+      })
+      .catch(function() { callback([]); });
+  }
+
+  function renderDropdown(dropdownEl, list, onSelect) {
+    dropdownEl.innerHTML = '';
+    if (list.length === 0) {
+      dropdownEl.innerHTML = '<div class="no-result">No matching customer</div>';
+    } else {
+      list.forEach(function(c) {
+        var div = document.createElement('div');
+        div.className = 'option';
+        div.textContent = displayText(c);
+        div.addEventListener('click', function() {
+          onSelect(c.customer_id, displayText(c));
+        });
+        dropdownEl.appendChild(div);
+      });
+    }
+    dropdownEl.classList.add('show');
+  }
+
+  function initCustomerTypeahead(wrapper) {
+    var input = wrapper.querySelector('.customer-typeahead-input');
+    var hidden = wrapper.querySelector('input[name="customer_id"]');
+    var dropdown = wrapper.querySelector('.customer-typeahead-dropdown');
+    var drawerId = wrapper.getAttribute('data-drawer-id');
+    if (!input || !hidden || !dropdown) return;
+
+    function doSearch() {
+      var q = input.value.trim();
+      searchCustomers(q, function(list) {
+        renderDropdown(dropdown, list, function(id, text) {
+          hidden.value = id || '';
+          input.value = text;
+          dropdown.classList.remove('show');
+        });
+      });
+    }
+
+    input.addEventListener('input', function() {
+      clearTimeout(searchTimeout);
+      var q = input.value.trim();
+      if (!q) {
+        hidden.value = '';
+        dropdown.classList.remove('show');
+        return;
+      }
+      searchTimeout = setTimeout(doSearch, 300);
+    });
+
+    input.addEventListener('focus', function() {
+      var q = input.value.trim();
+      if (q) doSearch();
+    });
+
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { dropdown.classList.remove('show'); return; }
+      var opts = dropdown.querySelectorAll('.option');
+      if (opts.length === 0) return;
+      var active = dropdown.querySelector('.option.active');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (!active) { opts[0].classList.add('active'); return; }
+        active.classList.remove('active');
+        var next = active.nextElementSibling;
+        if (next) next.classList.add('active'); else opts[0].classList.add('active');
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!active) { opts[opts.length - 1].classList.add('active'); return; }
+        active.classList.remove('active');
+        var prev = active.previousElementSibling;
+        if (prev) prev.classList.add('active'); else opts[opts.length - 1].classList.add('active');
+      } else if (e.key === 'Enter' && active) {
+        e.preventDefault();
+        active.click();
+      }
+    });
+
+    document.addEventListener('click', function(e) {
+      if (!wrapper.contains(e.target)) dropdown.classList.remove('show');
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.customer-typeahead').forEach(initCustomerTypeahead);
+  });
+})();
+</script>

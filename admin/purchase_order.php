@@ -151,130 +151,53 @@ include 'header.php';
     $purchase_orderstmt = $pdo->prepare("SELECT * FROM purchase_order ORDER BY id DESC");
     $purchase_orderstmt->execute();
     $purchase_orderdata = $purchase_orderstmt->fetchAll();
+
+    // Load all suppliers for typeahead
+    $supplierListStmt = $pdo->query("SELECT supplier_id, supplier_name FROM supplier ORDER BY supplier_name");
+    $suppliersList = $supplierListStmt ? $supplierListStmt->fetchAll(PDO::FETCH_ASSOC) : [];
+
+    // Load all items for typeahead (multiple item rows)
+    $itemListStmt = $pdo->query("SELECT item_id, item_name, original_price FROM item ORDER BY item_name");
+    $itemsList = $itemListStmt ? $itemListStmt->fetchAll(PDO::FETCH_ASSOC) : [];
  ?>
+<style>
+.supplier-typeahead { position: relative; }
+.supplier-typeahead-dropdown {
+  position: absolute; left: 0; right: 0; top: 100%; z-index: 1000;
+  max-height: 220px; overflow-y: auto;
+  background: #fff; border: 1px solid #ced4da; border-top: none;
+  border-radius: 0 0 4px 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  display: none;
+}
+.supplier-typeahead-dropdown.show { display: block; }
+.supplier-typeahead-dropdown .option {
+  padding: 8px 12px; cursor: pointer; font-size: 14px;
+  border-bottom: 1px solid #eee;
+}
+.supplier-typeahead-dropdown .option:hover,
+.supplier-typeahead-dropdown .option.active { background: #e9ecef; }
+.supplier-typeahead-dropdown .option:last-child { border-bottom: none; }
+.supplier-typeahead-dropdown .no-result { padding: 10px 12px; color: #6c757d; font-size: 14px; }
+/* Item typeahead (same look, scoped to row) */
+.item-typeahead { position: relative; }
+.item-typeahead-dropdown {
+  position: absolute; left: 0; right: 0; top: 100%; z-index: 1000;
+  max-height: 220px; overflow-y: auto;
+  background: #fff; border: 1px solid #ced4da; border-top: none;
+  border-radius: 0 0 4px 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  display: none;
+}
+.item-typeahead-dropdown.show { display: block; }
+.item-typeahead-dropdown .option { padding: 8px 12px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee; }
+.item-typeahead-dropdown .option:hover, .item-typeahead-dropdown .option.active { background: #e9ecef; }
+.item-typeahead-dropdown .option:last-child { border-bottom: none; }
+.item-typeahead-dropdown .no-result { padding: 10px 12px; color: #6c757d; font-size: 14px; }
+</style>
 <script>
-function fetchSupplierNameFromId() {
-    let supplierId = document.getElementById("supplier_id").value.trim();
-
-    if (supplierId !== "") {
-        fetch("get_supplier_by_id.php?supplier_id=" + encodeURIComponent(supplierId))
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                document.getElementById("supplier_name").value = data.supplier_name;
-            } else {
-                document.getElementById("supplier_name").value = "";
-            }
-        })
-        .catch(err => console.error("Error fetching supplier name:", err));
-    } else {
-        document.getElementById("supplier_name").value = "";
-    }
-}
-
-function fetchSupplierIdFromName() {
-    let supplierName = document.getElementById("supplier_name").value.trim();
-
-    if (supplierName !== "") {
-        fetch("get_supplier_by_name.php?supplier_name=" + encodeURIComponent(supplierName))
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                document.getElementById("supplier_id").value = data.supplier_id;
-            } else {
-                document.getElementById("supplier_id").value = "";
-            }
-        })
-        .catch(err => console.error("Error fetching supplier id:", err));
-    } else {
-        document.getElementById("supplier_id").value = "";
-    }
-}
-
-function fetchItemNameFromId(input) {
-    const row = input.closest('.item-row'); // find parent row
-    const itemId = input.value.trim();
-
-    const itemNameInput = row.querySelector('.item_name');
-    const priceInput = row.querySelector('.original_price');
-    const stockSpan = row.querySelector('.stock_balance');
-
-    if (itemId !== "") {
-        fetch("get_item_by_id.php?item_id=" + encodeURIComponent(itemId))
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                itemNameInput.value = data.item_name;
-                stockSpan.innerText = "Balance Qty is " + data.stock_balance + " pcs";
-                priceInput.value = data.original_price;
-            } else {
-                itemNameInput.value = "";
-                priceInput.value = "";
-                stockSpan.innerText = "";
-            }
-        })
-        .catch(err => console.error("Error fetching item name:", err));
-    } else {
-        itemNameInput.value = "";
-        priceInput.value = "";
-        stockSpan.innerText = "";
-    }
-}
-
-function fetchItemIdFromName(input) {
-    const row = input.closest('.item-row');
-    const itemName = input.value.trim();
-
-    const itemIdInput = row.querySelector('.item_id');
-    const priceInput = row.querySelector('.original_price');
-    const stockSpan = row.querySelector('.stock_balance');
-
-    if (itemName !== "") {
-        fetch("get_item_by_name.php?item_name=" + encodeURIComponent(itemName))
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                itemIdInput.value = data.item_id;
-                stockSpan.innerText = "Balance Qty is " + data.stock_balance + " pcs";
-                priceInput.value = data.original_price;
-            } else {
-                itemIdInput.value = "";
-                priceInput.value = "";
-                stockSpan.innerText = "";
-            }
-        })
-        .catch(err => console.error("Error fetching item id:", err));
-    } else {
-        itemIdInput.value = "";
-        priceInput.value = "";
-        stockSpan.innerText = "";
-    }
-}
-
-
-// FOR DRAWER
-
-function fetchSupplierNameFromIdDrawer(id) {
-  let supplierId = document.getElementById("supplier_id"+id).value.trim();
-  if(supplierId!=="") {
-    fetch("get_supplier_by_id.php?supplier_id="+supplierId)
-    .then(res=>res.json())
-    .then(data=>{
-      document.getElementById("supplier_name"+id).value = data.success ? data.supplier_name : "";
-    });
-  }
-}
-
-function fetchSupplierIdFromNameDrawer(id) {
-  let supplierName = document.getElementById("supplier_name"+id).value.trim();
-  if(supplierName!=="") {
-    fetch("get_supplier_by_name.php?supplier_name="+encodeURIComponent(supplierName))
-    .then(res=>res.json())
-    .then(data=>{
-      document.getElementById("supplier_id"+id).value = data.success ? data.supplier_id : "";
-    });
-  }
-}
+var suppliersList = <?php echo json_encode($suppliersList); ?>;
+var itemsList = <?php echo json_encode($itemsList); ?>;
+</script>
+<script>
 </script>
 
 
@@ -305,35 +228,33 @@ function fetchSupplierIdFromNameDrawer(id) {
                 </div>
                 <span style="color:red;"><?php echo empty($vr_noError) ? '' : '*'.$vr_noError;?></span>
               </div>
-              <div class="col-3">
-                <label for="" class="mt-4">Supplier Code</label>
-                <input type="text" id="supplier_id" oninput="fetchSupplierNameFromId()" class="form-control" placeholder="Supplier Code" name="supplier_id" >
+              <div class="col-6">
+                <label for="supplier_display_main" class="mt-4">Supplier</label>
+                <div class="supplier-typeahead" id="supplier_typeahead_main">
+                  <input type="text" class="form-control supplier-typeahead-input" id="supplier_display_main" placeholder="Type supplier code or name..." autocomplete="off">
+                  <input type="hidden" name="supplier_id" id="supplier_id_main">
+                  <div class="supplier-typeahead-dropdown" id="supplier_dropdown_main"></div>
+                </div>
                 <span style="color:red;"><?php echo empty($supplier_idError) ? '' : '*'.$supplier_idError;?></span>
-              </div>
-              <div class="col-3">
-                <label for="" class="mt-4">Supplier Name</label>
-                <input type="text" id="supplier_name" class="form-control" placeholder="Supplier Name" name="supplier_name" oninput="fetchSupplierIdFromName()">
               </div>
             </div>
             <!-- Second Row (Item Rows Container) -->
             <div id="item-rows">
               <div class="row mt-3 mb-3 item-row">
                 <div class="col">
-                  <label>Item Code</label>
-                  <input type="text" class="form-control item_id" placeholder="Item Code" name="item_id[]" oninput="fetchItemNameFromId(this)">
+                  <label>Item</label>
+                  <div class="item-typeahead">
+                    <input type="text" class="form-control item-typeahead-input" placeholder="Type item code or name..." autocomplete="off">
+                    <input type="hidden" name="item_id[]" class="item_id">
+                    <input type="hidden" name="item_name[]" class="item_name">
+                    <div class="item-typeahead-dropdown"></div>
+                  </div>
                   <span class="stock_balance" style="color:green; font-size: 15px;"></span>
                 </div>
-                
-                <div class="col">
-                  <label>Item Name</label>
-                  <input type="text" class="form-control item_name" placeholder="Item Name" name="item_name[]" oninput="fetchItemIdFromName(this)">
-                </div>
-
                 <div class="col">
                   <label>Price</label>
                   <input type="number" class="form-control original_price" placeholder="Price" name="original_price[]">
                 </div>
-
                 <div class="col">
                   <label>Qty</label>
                   <input type="number" class="form-control qty" placeholder="Qty" name="qty[]">
@@ -413,7 +334,7 @@ function fetchSupplierIdFromNameDrawer(id) {
                 <button type="button" class="btn-close" onclick="closeDrawer(<?php echo $value['id']; ?>)"></button>
               </div>
 
-              <div class="drawer-body p-4">
+              <div class="drawer-body p-4 h-100">
                 <form action="" method="post">
                   <input type="hidden" name="update_id" value="<?php echo $value['id']; ?>">
 
@@ -436,16 +357,14 @@ function fetchSupplierIdFromNameDrawer(id) {
 
                   <!-- Second Row -->
                   <div class="row mb-3">
-                    <div class="col-md-6">
-                      <label class="form-label">Supplier Id</label>
-                      <input type="text" id="supplier_id<?php echo $value['id']; ?>" class="form-control" name="supplier_id" value="<?php echo $value['supplier_id']; ?>" 
-                        oninput="fetchSupplierNameFromIdDrawer(<?php echo $value['id']; ?>)">
+                    <div class="col-md-12">
+                      <label class="form-label">Supplier</label>
+                      <div class="supplier-typeahead supplier-typeahead-drawer" data-drawer-id="<?php echo $value['id']; ?>">
+                        <input type="text" class="form-control supplier-typeahead-input" id="supplier_display_<?php echo $value['id']; ?>" placeholder="Type supplier code or name..." value="<?php echo htmlspecialchars($value['supplier_id'] . ' - ' . ($supplierIdResult['supplier_name'] ?? '')); ?>" autocomplete="off">
+                        <input type="hidden" name="supplier_id" id="supplier_id_drawer_<?php echo $value['id']; ?>" value="<?php echo htmlspecialchars($value['supplier_id']); ?>">
+                        <div class="supplier-typeahead-dropdown" id="supplier_dropdown_<?php echo $value['id']; ?>"></div>
+                      </div>
                       <span style="color:red;"><?php echo empty($supplier_idErrorDrawer) ? '' : '*'.$supplier_idErrorDrawer; ?></span>
-                    </div>
-                    <div class="col-md-6">
-                      <label class="form-label">Supplier Name</label>
-                      <input type="text" id="supplier_name<?php echo $value['id']; ?>" class="form-control" 
-                        oninput="fetchSupplierIdFromNameDrawer(<?php echo $value['id']; ?>)">
                     </div>
                   </div>
 
@@ -492,8 +411,10 @@ function fetchSupplierIdFromNameDrawer(id) {
       const clone = firstRow.cloneNode(true);
 
       // clear inputs and stock balance
-      clone.querySelectorAll('input').forEach(input => input.value = "");
-      clone.querySelectorAll('.stock_balance').forEach(span => span.innerText = "");
+      clone.querySelectorAll('input').forEach(function(input) { input.value = ""; });
+      clone.querySelectorAll('.stock_balance').forEach(function(span) { span.innerText = ""; });
+      var itemDrop = clone.querySelector('.item-typeahead-dropdown');
+      if (itemDrop) { itemDrop.innerHTML = ""; itemDrop.classList.remove('show'); }
 
       // Add remove button if not exists
       if (!clone.querySelector('.remove-row-btn')) {
@@ -501,15 +422,18 @@ function fetchSupplierIdFromNameDrawer(id) {
         removeBtn.type = 'button';
         removeBtn.className = 'btn btn-danger remove-row-btn';
         removeBtn.textContent = '- Remove';
-        // Create a wrapper div for alignment
         const colDiv = document.createElement('div');
         colDiv.className = 'col-1 mt-4 mr-4';
         colDiv.appendChild(removeBtn);
-
         clone.appendChild(colDiv);
       }
 
       container.appendChild(clone);
+      // init item typeahead on the new row
+      if (window.initItemTypeahead) {
+        var typeahead = clone.querySelector('.item-typeahead');
+        if (typeahead) window.initItemTypeahead(typeahead);
+      }
     });
 
     // Remove row listener
@@ -561,3 +485,219 @@ function closeDrawer(id) {
   });
 </script>
 <?php include 'footer.html'; ?>
+<!-- Supplier typeahead: type code or name, choose from list (no plugin) -->
+<script>
+(function() {
+  if (typeof suppliersList === 'undefined') suppliersList = [];
+
+  function displayText(s) { return s.supplier_id + ' - ' + s.supplier_name; }
+
+  function filterSuppliers(q) {
+    q = (q || '').trim().toLowerCase();
+    if (!q) return suppliersList.slice(0, 50);
+    return suppliersList.filter(function(s) {
+      var text = (s.supplier_id + ' - ' + (s.supplier_name || '')).toLowerCase();
+      return text === q ||
+             (s.supplier_id && s.supplier_id.toString().toLowerCase().indexOf(q) !== -1) ||
+             (s.supplier_name && s.supplier_name.toLowerCase().indexOf(q) !== -1);
+    }).slice(0, 50);
+  }
+
+  function renderDropdown(dropdownEl, list, onSelect) {
+    dropdownEl.innerHTML = '';
+    if (list.length === 0) {
+      dropdownEl.innerHTML = '<div class="no-result">No matching supplier</div>';
+    } else {
+      list.forEach(function(s) {
+        var div = document.createElement('div');
+        div.className = 'option';
+        div.textContent = displayText(s);
+        div.dataset.id = s.supplier_id;
+        div.dataset.text = displayText(s);
+        div.addEventListener('click', function() {
+          onSelect(s.supplier_id, displayText(s));
+        });
+        dropdownEl.appendChild(div);
+      });
+    }
+    dropdownEl.classList.add('show');
+  }
+
+  function initTypeahead(wrapper) {
+    var input = wrapper.querySelector('.supplier-typeahead-input');
+    var hidden = wrapper.querySelector('input[type="hidden"][name="supplier_id"]');
+    var dropdown = wrapper.querySelector('.supplier-typeahead-dropdown');
+    if (!input || !hidden || !dropdown) return;
+
+    input.addEventListener('input', function() {
+      var q = input.value.trim();
+      if (!q) { hidden.value = ''; dropdown.classList.remove('show'); return; }
+      var list = filterSuppliers(q);
+      renderDropdown(dropdown, list, function(id, text) {
+        hidden.value = id;
+        input.value = text;
+        dropdown.classList.remove('show');
+      });
+    });
+
+    input.addEventListener('focus', function() {
+      var q = input.value.trim();
+      var list = filterSuppliers(q);
+      renderDropdown(dropdown, list, function(id, text) {
+        hidden.value = id;
+        input.value = text;
+        dropdown.classList.remove('show');
+      });
+    });
+
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { dropdown.classList.remove('show'); return; }
+      var opts = dropdown.querySelectorAll('.option');
+      if (opts.length === 0) return;
+      var active = dropdown.querySelector('.option.active');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (!active) { opts[0].classList.add('active'); return; }
+        active.classList.remove('active');
+        var next = active.nextElementSibling;
+        if (next) next.classList.add('active');
+        else opts[0].classList.add('active');
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!active) { opts[opts.length - 1].classList.add('active'); return; }
+        active.classList.remove('active');
+        var prev = active.previousElementSibling;
+        if (prev) prev.classList.add('active');
+        else opts[opts.length - 1].classList.add('active');
+      } else if (e.key === 'Enter' && active) {
+        e.preventDefault();
+        active.click();
+      }
+    });
+
+    document.addEventListener('click', function(e) {
+      if (!wrapper.contains(e.target)) dropdown.classList.remove('show');
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.supplier-typeahead').forEach(initTypeahead);
+  });
+})();
+</script>
+<!-- Item typeahead: type code or name, choose from list (multiple rows) -->
+<script>
+(function() {
+  if (typeof itemsList === 'undefined') itemsList = [];
+
+  function itemDisplayText(it) { return (it.item_id || '') + ' - ' + (it.item_name || ''); }
+
+  function filterItems(q) {
+    q = (q || '').trim().toLowerCase();
+    if (!q) return itemsList.slice(0, 50);
+    return itemsList.filter(function(it) {
+      var text = itemDisplayText(it).toLowerCase();
+      return text === q ||
+             (it.item_id && it.item_id.toString().toLowerCase().indexOf(q) !== -1) ||
+             (it.item_name && it.item_name.toLowerCase().indexOf(q) !== -1);
+    }).slice(0, 50);
+  }
+
+  function renderItemDropdown(dropdownEl, list, onSelect) {
+    dropdownEl.innerHTML = '';
+    if (list.length === 0) {
+      dropdownEl.innerHTML = '<div class="no-result">No matching item</div>';
+    } else {
+      list.forEach(function(it) {
+        var div = document.createElement('div');
+        div.className = 'option';
+        div.textContent = itemDisplayText(it);
+        div.addEventListener('click', function() { onSelect(it); });
+        dropdownEl.appendChild(div);
+      });
+    }
+    dropdownEl.classList.add('show');
+  }
+
+  function initItemTypeahead(wrapper) {
+    if (!wrapper) return;
+    var input = wrapper.querySelector('.item-typeahead-input');
+    var hiddenId = wrapper.querySelector('input.item_id');
+    var hiddenName = wrapper.querySelector('input.item_name');
+    var dropdown = wrapper.querySelector('.item-typeahead-dropdown');
+    var row = wrapper.closest('.item-row');
+    var priceInput = row ? row.querySelector('.original_price') : null;
+    var stockSpan = row ? row.querySelector('.stock_balance') : null;
+    if (!input || !hiddenId || !hiddenName || !dropdown) return;
+
+    function onSelectItem(it) {
+      hiddenId.value = it.item_id || '';
+      hiddenName.value = it.item_name || '';
+      input.value = itemDisplayText(it);
+      if (priceInput !== null) priceInput.value = it.original_price != null ? it.original_price : '';
+      dropdown.classList.remove('show');
+      if (stockSpan) {
+        stockSpan.innerText = '';
+        fetch('get_item_by_id.php?item_id=' + encodeURIComponent(it.item_id))
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.success && stockSpan) stockSpan.innerText = 'Balance Qty is ' + (data.stock_balance || 0) + ' pcs';
+          })
+          .catch(function() {});
+      }
+    }
+
+    input.addEventListener('input', function() {
+      var q = input.value.trim();
+      if (!q) {
+        hiddenId.value = '';
+        hiddenName.value = '';
+        if (priceInput) priceInput.value = '';
+        if (stockSpan) stockSpan.innerText = '';
+        dropdown.classList.remove('show');
+        return;
+      }
+      var list = filterItems(q);
+      renderItemDropdown(dropdown, list, onSelectItem);
+    });
+
+    input.addEventListener('focus', function() {
+      var q = input.value.trim();
+      var list = filterItems(q);
+      renderItemDropdown(dropdown, list, onSelectItem);
+    });
+
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { dropdown.classList.remove('show'); return; }
+      var opts = dropdown.querySelectorAll('.option');
+      if (opts.length === 0) return;
+      var active = dropdown.querySelector('.option.active');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (!active) { opts[0].classList.add('active'); return; }
+        active.classList.remove('active');
+        var next = active.nextElementSibling;
+        if (next) next.classList.add('active'); else opts[0].classList.add('active');
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!active) { opts[opts.length - 1].classList.add('active'); return; }
+        active.classList.remove('active');
+        var prev = active.previousElementSibling;
+        if (prev) prev.classList.add('active'); else opts[opts.length - 1].classList.add('active');
+      } else if (e.key === 'Enter' && active) {
+        e.preventDefault();
+        active.click();
+      }
+    });
+
+    document.addEventListener('click', function(e) {
+      if (!wrapper.contains(e.target)) dropdown.classList.remove('show');
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.item-typeahead').forEach(initItemTypeahead);
+  });
+  window.initItemTypeahead = initItemTypeahead;
+})();
+</script>

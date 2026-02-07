@@ -52,45 +52,28 @@ $drawerToOpen = null;
   $purchase_order_itemstmt = $pdo->prepare("SELECT * FROM purchase_order_items WHERE order_no='$order_no' ORDER BY id DESC");
   $purchase_order_itemstmt->execute();
   $purchase_order_itemdatas = $purchase_order_itemstmt->fetchAll();
-?>
-<script>
-  function fetchItemNameFromIdDrawer(id) {
-    let itemId = document.getElementById("item_id"+id).value.trim();
-    if(itemId!=="") {
-      fetch("get_item_by_id.php?item_id="+encodeURIComponent(itemId))
-      .then(res=>res.json())
-      .then(data=>{
-        if(data.success){
-          document.getElementById("item_name"+id).value = data.item_name;
-          document.getElementById("original_price"+id).value = data.original_price;
-          document.getElementById("stock_balance"+id).innerText = "Balance Qty is "+data.stock_balance+" pcs";
-        } else {
-          document.getElementById("item_name"+id).value = "";
-          document.getElementById("original_price"+id).value = "";
-          document.getElementById("stock_balance"+id).innerText = ""; 
-        }
-      });
-    }
-  }
 
-  function fetchItemIdFromNameDrawer(id) {
-    let itemName = document.getElementById("item_name"+id).value.trim();
-    if(itemName!=="") {
-      fetch("get_item_by_name.php?item_name="+encodeURIComponent(itemName))
-      .then(res=>res.json())
-      .then(data=>{
-        if(data.success){
-          document.getElementById("item_id"+id).value = data.item_id;
-          document.getElementById("original_price"+id).value = data.original_price;
-          document.getElementById("stock_balance"+id).innerText = "Balance Qty is "+data.stock_balance+" pcs";
-        } else {
-          document.getElementById("item_id"+id).value = "";
-          document.getElementById("original_price"+id).value = "";
-          document.getElementById("stock_balance"+id).innerText = "";
-        }
-      });
-    }
-  }
+  // Load all items for typeahead (edit drawer)
+  $itemListStmt = $pdo->query("SELECT item_id, item_name, original_price FROM item ORDER BY item_name");
+  $itemsList = $itemListStmt ? $itemListStmt->fetchAll(PDO::FETCH_ASSOC) : [];
+?>
+<style>
+.item-typeahead { position: relative; }
+.item-typeahead-dropdown {
+  position: absolute; left: 0; right: 0; top: 100%; z-index: 1000;
+  max-height: 220px; overflow-y: auto;
+  background: #fff; border: 1px solid #ced4da; border-top: none;
+  border-radius: 0 0 4px 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  display: none;
+}
+.item-typeahead-dropdown.show { display: block; }
+.item-typeahead-dropdown .option { padding: 8px 12px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee; }
+.item-typeahead-dropdown .option:hover, .item-typeahead-dropdown .option.active { background: #e9ecef; }
+.item-typeahead-dropdown .option:last-child { border-bottom: none; }
+.item-typeahead-dropdown .no-result { padding: 10px 12px; color: #6c757d; font-size: 14px; }
+</style>
+<script>
+var itemsList = <?php echo json_encode($itemsList); ?>;
 </script>
   <div class="col-md-12 mt-4 px-3 pt-1">
     <div class="d-flex justify-content-between">
@@ -150,23 +133,21 @@ $drawerToOpen = null;
                   <button type="button" class="btn-close" onclick="closeDrawer(<?php echo $value['id']; ?>)"></button>
                 </div>
 
-                <div class="drawer-body p-4">
+                <div class="drawer-body p-4 h-100">
                   <form action="" method="post">
                     <input type="hidden" name="update_id" value="<?php echo $value['id']; ?>">
 
                     <!-- Third Row -->
                     <div class="row mb-3">
-                      <div class="col-md-6">
-                        <label class="form-label">Item Id</label>
-                        <input type="text" id="item_id<?php echo $value['id']; ?>" class="form-control" name="item_id" value="<?php echo $value['item_id']; ?>" 
-                          oninput="fetchItemNameFromIdDrawer(<?php echo $value['id']; ?>)">
+                      <div class="col-md-12">
+                        <label class="form-label">Item</label>
+                        <div class="item-typeahead" data-drawer-id="<?php echo $value['id']; ?>">
+                          <input type="text" class="form-control item-typeahead-input" placeholder="Type item code or name..." value="<?php echo htmlspecialchars($value['item_id'] . ' - ' . ($itemIdResult['item_name'] ?? '')); ?>" autocomplete="off">
+                          <input type="hidden" name="item_id" value="<?php echo htmlspecialchars($value['item_id']); ?>">
+                          <div class="item-typeahead-dropdown"></div>
+                        </div>
                         <span style="color:red;"><?php echo empty($item_idErrorDrawer) ? '' : '*'.$item_idErrorDrawer; ?></span>
-                        <small id="stock_balance<?php echo $value['id']; ?>" class="text-success"></small>
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label">Item Name</label>
-                        <input type="text" id="item_name<?php echo $value['id']; ?>" class="form-control" 
-                          oninput="fetchItemIdFromNameDrawer(<?php echo $value['id']; ?>)">
+                        <small id="stock_balance<?php echo $value['id']; ?>" class="text-success d-block"></small>
                       </div>
                     </div>
 
@@ -248,3 +229,102 @@ function closeDrawer(id) {
   });
 </script>
 <?php include 'footer.html'; ?>
+<!-- Item typeahead for detail drawer -->
+<script>
+(function() {
+  if (typeof itemsList === 'undefined') itemsList = [];
+  function itemDisplayText(it) { return (it.item_id || '') + ' - ' + (it.item_name || ''); }
+  function filterItems(q) {
+    q = (q || '').trim().toLowerCase();
+    if (!q) return itemsList.slice(0, 50);
+    return itemsList.filter(function(it) {
+      var text = itemDisplayText(it).toLowerCase();
+      return text === q ||
+             (it.item_id && it.item_id.toString().toLowerCase().indexOf(q) !== -1) ||
+             (it.item_name && it.item_name.toLowerCase().indexOf(q) !== -1);
+    }).slice(0, 50);
+  }
+  function renderItemDropdown(dropdownEl, list, onSelect) {
+    dropdownEl.innerHTML = '';
+    if (list.length === 0) {
+      dropdownEl.innerHTML = '<div class="no-result">No matching item</div>';
+    } else {
+      list.forEach(function(it) {
+        var div = document.createElement('div');
+        div.className = 'option';
+        div.textContent = itemDisplayText(it);
+        div.addEventListener('click', function() { onSelect(it); });
+        dropdownEl.appendChild(div);
+      });
+    }
+    dropdownEl.classList.add('show');
+  }
+  function initItemTypeahead(wrapper) {
+    if (!wrapper) return;
+    var drawerId = wrapper.getAttribute('data-drawer-id');
+    var input = wrapper.querySelector('.item-typeahead-input');
+    var hiddenId = wrapper.querySelector('input[name="item_id"]');
+    var dropdown = wrapper.querySelector('.item-typeahead-dropdown');
+    var priceInput = drawerId ? document.getElementById('original_price' + drawerId) : null;
+    var stockSpan = drawerId ? document.getElementById('stock_balance' + drawerId) : null;
+    if (!input || !hiddenId || !dropdown) return;
+    function onSelectItem(it) {
+      hiddenId.value = it.item_id || '';
+      input.value = itemDisplayText(it);
+      if (priceInput) priceInput.value = it.original_price != null ? it.original_price : '';
+      dropdown.classList.remove('show');
+      if (stockSpan) {
+        stockSpan.innerText = '';
+        fetch('get_item_by_id.php?item_id=' + encodeURIComponent(it.item_id))
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.success && stockSpan) stockSpan.innerText = 'Balance Qty is ' + (data.stock_balance || 0) + ' pcs';
+          })
+          .catch(function() {});
+      }
+    }
+    input.addEventListener('input', function() {
+      var q = input.value.trim();
+      if (!q) {
+        hiddenId.value = '';
+        if (priceInput) priceInput.value = '';
+        if (stockSpan) stockSpan.innerText = '';
+        dropdown.classList.remove('show');
+        return;
+      }
+      renderItemDropdown(dropdown, filterItems(q), onSelectItem);
+    });
+    input.addEventListener('focus', function() {
+      renderItemDropdown(dropdown, filterItems(input.value.trim()), onSelectItem);
+    });
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { dropdown.classList.remove('show'); return; }
+      var opts = dropdown.querySelectorAll('.option');
+      if (opts.length === 0) return;
+      var active = dropdown.querySelector('.option.active');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (!active) { opts[0].classList.add('active'); return; }
+        active.classList.remove('active');
+        var next = active.nextElementSibling;
+        if (next) next.classList.add('active'); else opts[0].classList.add('active');
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!active) { opts[opts.length - 1].classList.add('active'); return; }
+        active.classList.remove('active');
+        var prev = active.previousElementSibling;
+        if (prev) prev.classList.add('active'); else opts[opts.length - 1].classList.add('active');
+      } else if (e.key === 'Enter' && active) {
+        e.preventDefault();
+        active.click();
+      }
+    });
+    document.addEventListener('click', function(e) {
+      if (!wrapper.contains(e.target)) dropdown.classList.remove('show');
+    });
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.item-typeahead').forEach(initItemTypeahead);
+  });
+})();
+</script>

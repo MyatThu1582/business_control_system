@@ -199,103 +199,31 @@ require '../Config/common.php';
       }
   }
 
+  // Load suppliers and items for typeahead
+  $supplierListStmt = $pdo->query("SELECT supplier_id, supplier_name FROM supplier ORDER BY supplier_name");
+  $suppliersList = $supplierListStmt ? $supplierListStmt->fetchAll(PDO::FETCH_ASSOC) : [];
+  $itemListStmt = $pdo->query("SELECT item_id, item_name, original_price FROM item ORDER BY item_name");
+  $itemsList = $itemListStmt ? $itemListStmt->fetchAll(PDO::FETCH_ASSOC) : [];
   ?>
-    
+<style>
+.supplier-typeahead, .item-typeahead { position: relative; }
+.supplier-typeahead-dropdown, .item-typeahead-dropdown {
+  position: absolute; left: 0; right: 0; top: 100%; z-index: 1000;
+  max-height: 220px; overflow-y: auto;
+  background: #fff; border: 1px solid #ced4da; border-top: none;
+  border-radius: 0 0 4px 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  display: none;
+}
+.supplier-typeahead-dropdown.show, .item-typeahead-dropdown.show { display: block; }
+.supplier-typeahead-dropdown .option, .item-typeahead-dropdown .option { padding: 8px 12px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee; }
+.supplier-typeahead-dropdown .option:hover, .supplier-typeahead-dropdown .option.active,
+.item-typeahead-dropdown .option:hover, .item-typeahead-dropdown .option.active { background: #e9ecef; }
+.supplier-typeahead-dropdown .option:last-child, .item-typeahead-dropdown .option:last-child { border-bottom: none; }
+.supplier-typeahead-dropdown .no-result, .item-typeahead-dropdown .no-result { padding: 10px 12px; color: #6c757d; font-size: 14px; }
+</style>
 <script>
-  function fetchSupplierNameFromId() {
-      let supplierId = document.getElementById("supplier_id").value.trim();
-
-      if (supplierId !== "") {
-          fetch("get_supplier_by_id.php?supplier_id=" + encodeURIComponent(supplierId))
-          .then(res => res.json())
-          .then(data => {
-              if (data.success) {
-                  document.getElementById("supplier_name").value = data.supplier_name;
-              } else {
-                  document.getElementById("supplier_name").value = "";
-              }
-          })
-          .catch(err => console.error("Error fetching supplier name:", err));
-      } else {
-          document.getElementById("supplier_name").value = "";
-      }
-  }
-
-  function fetchSupplierIdFromName() {
-      let supplierName = document.getElementById("supplier_name").value.trim();
-
-      if (supplierName !== "") {
-          fetch("get_supplier_by_name.php?supplier_name=" + encodeURIComponent(supplierName))
-          .then(res => res.json())
-          .then(data => {
-              if (data.success) {
-                  document.getElementById("supplier_id").value = data.supplier_id;
-              } else {
-                  document.getElementById("supplier_id").value = "";
-              }
-          })
-          .catch(err => console.error("Error fetching supplier id:", err));
-      } else {
-          document.getElementById("supplier_id").value = "";
-      }
-  }
-
-  function fetchItemNameFromId(input) {
-    const row = input.closest('.item-row');
-    const itemId = input.value.trim();
-    const itemNameInput = row.querySelector('.item_name');
-    const priceInput = row.querySelector('.original_price');
-    const stockSpan = row.querySelector('.stock_balance');
-
-    if(itemId!=="") {
-      fetch("get_item_by_id.php?item_id="+encodeURIComponent(itemId))
-        .then(res => res.json())
-        .then(data => {
-          if(data.success){
-            itemNameInput.value = data.item_name;
-            priceInput.value = data.original_price;
-            stockSpan.innerText = data.stock_balance;
-          } else {
-            itemNameInput.value = "";
-            priceInput.value = "";
-            stockSpan.innerText = "";
-          }
-        });
-    } else {
-      itemNameInput.value = "";
-      priceInput.value = "";
-      stockSpan.innerText = "";
-    }
-  }
-
-  function fetchItemIdFromName(input) {
-    const row = input.closest('.item-row');
-    const itemName = input.value.trim();
-    const itemIdInput = row.querySelector('.item_id');
-    const priceInput = row.querySelector('.original_price');
-    const stockSpan = row.querySelector('.stock_balance');
-
-    if(itemName!=="") {
-      fetch("get_item_by_name.php?item_name="+encodeURIComponent(itemName))
-        .then(res => res.json())
-        .then(data => {
-          if(data.success){
-            itemIdInput.value = data.item_id;
-            priceInput.value = data.original_price;
-            stockSpan.innerText = data.stock_balance;
-          } else {
-            itemIdInput.value = "";
-            priceInput.value = "";
-            stockSpan.innerText = "";
-          }
-        });
-    } else {
-      itemIdInput.value = "";
-      priceInput.value = "";
-      stockSpan.innerText = "";
-    }
-  }
-
+var suppliersList = <?php echo json_encode($suppliersList); ?>;
+var itemsList = <?php echo json_encode($itemsList); ?>;
 </script>
     <div class="col-md-12 mt-2 px-3 pt-1">
       <div class="collapse show" id="">  
@@ -342,14 +270,14 @@ require '../Config/common.php';
                 </div>
                 </div>
               
-                <div class="col-2">
-                  <label for="">Supplier_Id</label>
-                  <input type="text" id="supplier_id" oninput="fetchSupplierNameFromId()" class="form-control" placeholder="Supplier_Id" name="supplier_id" >
+                <div class="col-4">
+                  <label for="supplier_display_main">Supplier</label>
+                  <div class="supplier-typeahead" id="supplier_typeahead_main">
+                    <input type="text" class="form-control supplier-typeahead-input" id="supplier_display_main" placeholder="Type supplier code or name..." autocomplete="off">
+                    <input type="hidden" name="supplier_id" id="supplier_id_main">
+                    <div class="supplier-typeahead-dropdown" id="supplier_dropdown_main"></div>
+                  </div>
                   <p style="color:red;"><?php echo empty($supplier_idError) ? '' : '*'.$supplier_idError;?></p>
-                </div>
-                <div class="col-2">
-                  <label for="">Supplier_Name</label>
-                  <input type="text" id="supplier_name" class="form-control" placeholder="Supplier_Name" name="supplier_name" oninput="fetchSupplierIdFromName()">
                 </div>
                 <div class="col-2">
                   <label for="">Payment</label>
@@ -364,9 +292,9 @@ require '../Config/common.php';
                   <table class="table table-hover table-bordered">
                     <thead class="table-sm" style="background-color: #f4f4f4;">
                     <tr>
-                        <th>Item Code</th>
-                        <th>Item Name</th>
+                        <th>Item</th>
                         <th>Price</th>
+                        <th style="width: 120px;">In Stock</th>
                         <th class="text-right">Discount %</th>
                         <th class="text-right">Qty</th>
                         <th class="text-right">Foc</th>
@@ -375,29 +303,23 @@ require '../Config/common.php';
                     </thead>
                     <tbody id="item-rows">
                       <tr class="item-row" style="font-size: 15px;">
-                          <td class="no-padding"> 
-                            <input type="text" 
-                                  value="" 
-                                  class="custom-input item_id" 
-                                  name="item_id[]" 
-                                  oninput="fetchItemNameFromId(this)">
+                          <td class="no-padding" style="min-width: 250px;">
+                            <div class="item-typeahead">
+                              <input type="text" class="custom-input item-typeahead-input" placeholder="" autocomplete="off">
+                              <input type="hidden" name="item_id[]" class="item_id">
+                              <input type="hidden" name="item_name[]" class="item_name">
+                              <div class="item-typeahead-dropdown"></div>
+                            </div>
                           </td>
-
-                          <td class="no-padding">
-                            <input type="text" 
-                                  value="" 
-                                  class="custom-input item_name" 
-                                  name="item_name[]" 
-                                  oninput="fetchItemIdFromName(this)">
-                          </td>
-
                           <td class="no-padding">
                             <input type="number" 
                                   value="" 
                                   class="custom-input text-right original_price" 
                                   name="original_price[]">
                           </td>
-
+                          <td class="text-right">
+                            <span class="stock_balance"></span>
+                          </td>
                           <td class="no-padding">
                             <input type="number" 
                                   value="" 
@@ -437,6 +359,39 @@ require '../Config/common.php';
                     </tbody>
                 </table>
               </div>
+              <template id="item-row-template">
+                <tr class="item-row" style="font-size: 15px;">
+                  <td class="no-padding" style="min-width: 250px;">
+                    <div class="item-typeahead">
+                      <input type="text" class="custom-input item-typeahead-input" placeholder="Type item code or name..." autocomplete="off">
+                      <input type="hidden" name="item_id[]" class="item_id">
+                      <input type="hidden" name="item_name[]" class="item_name">
+                      <div class="item-typeahead-dropdown"></div>
+                    </div>
+                  </td>
+                  <td class="no-padding">
+                    <input type="number" class="custom-input text-right original_price" name="original_price[]">
+                  </td>
+                  <td class="text-right"><span class="stock_balance"></span></td>
+                  <td class="no-padding">
+                    <input type="number" class="custom-input text-right discount" name="discount[]">
+                  </td>
+                  <td class="no-padding">
+                    <input type="number" class="custom-input text-right qty" name="qty[]">
+                  </td>
+                  <td class="no-padding">
+                    <input type="number" class="custom-input text-right foc" name="foc[]">
+                  </td>
+                  <td class="no-padding">
+                    <input type="number" class="custom-input text-right" name="amount[]">
+                  </td>
+                  <td class="no-padding text-center" style="background:none !important; cursor:pointer !important; width: 30px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg remove-row-btn" viewBox="0 0 16 16">
+                      <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
+                    </svg>
+                  </td>
+                </tr>
+              </template>
               <div>
                   <button type="button" id="add-row-btn" class="btn btn-default text-info btn-sm ml-2">+ Add a new line</button>
               </div>
@@ -478,26 +433,27 @@ require '../Config/common.php';
           const firstRow = container.querySelector('.item-row');
           const clone = firstRow.cloneNode(true);
 
-          // Clear all input values in the cloned row
-          clone.querySelectorAll('input').forEach(input => input.value = '');
-          clone.querySelectorAll('.stock_balance').forEach(span => span.innerText = '');
+          clone.querySelectorAll('input').forEach(function(input) { input.value = ''; });
+          clone.querySelectorAll('.stock_balance').forEach(function(span) { span.innerText = ''; });
+          var itemDrop = clone.querySelector('.item-typeahead-dropdown');
+          if (itemDrop) { itemDrop.innerHTML = ''; itemDrop.classList.remove('show'); }
 
-          // Add remove button if it doesn't exist
           if (!clone.querySelector('.remove-row-btn')) {
               const removeBtn = document.createElement('button');
               removeBtn.type = 'button';
               removeBtn.className = 'btn btn-danger remove-row-btn';
               removeBtn.textContent = '- Remove';
-
-              // Create a wrapper div for alignment
               const colDiv = document.createElement('div');
               colDiv.className = 'col-1 mt-4 mr-4';
               colDiv.appendChild(removeBtn);
-
               clone.appendChild(colDiv);
           }
 
           container.appendChild(clone);
+          if (window.initItemTypeahead) {
+              var typeahead = clone.querySelector('.item-typeahead');
+              if (typeahead) window.initItemTypeahead(typeahead);
+          }
       });
 
       // --- Remove row functionality ---
@@ -511,38 +467,126 @@ require '../Config/common.php';
 </script>
 
 <script>
-// to disable input when select po_no
+// When PO selected: fill supplier + item table (current structure). When cleared: restore empty rows.
 document.addEventListener('DOMContentLoaded', function () {
   const poSelect = document.getElementById('po_no');
   const itemRowsContainer = document.getElementById('item-rows');
   const addRowBtn = document.getElementById('add-row-btn');
-  const supplierIdInput = document.getElementById('supplier_id');
-  const supplierNameInput = document.getElementById('supplier_name');
+  const supplierTypeahead = document.getElementById('supplier_typeahead_main');
+  const rowTemplate = document.getElementById('item-row-template');
 
-  function toggleInputs() {
-    const disable = poSelect.value !== ""; // Disable if PO selected
-
-    // Disable item row inputs
-    itemRowsContainer.querySelectorAll('input').forEach(input => {
-      input.disabled = disable;
-      if (disable) input.value = "";
-    });
-
-    // Disable add row button
+  function toggleInputs(disable) {
     addRowBtn.disabled = disable;
-
-    // Disable supplier inputs
-    supplierIdInput.disabled = disable;
-    supplierNameInput.disabled = disable;
-
-    if (disable) {
-      supplierIdInput.value = "";
-      supplierNameInput.value = "";
+    if (supplierTypeahead) {
+      var supplierInput = supplierTypeahead.querySelector('.supplier-typeahead-input');
+      var supplierHidden = supplierTypeahead.querySelector('input[name="supplier_id"]');
+      if (supplierInput) supplierInput.disabled = disable;
+      if (supplierHidden) supplierHidden.disabled = disable;
+    }
+    itemRowsContainer.querySelectorAll('.item-typeahead-input, input.item_id, input.item_name, .original_price, .discount, .qty, .foc, input[name="amount[]"]').forEach(function(el) {
+      el.disabled = disable;
+    });
+    if (!disable) {
+      itemRowsContainer.querySelectorAll('.original_price, .discount, .qty, .foc, input[name="amount[]"]').forEach(function(input) {
+        input.disabled = false;
+      });
     }
   }
 
-  poSelect.addEventListener('change', toggleInputs);
-  toggleInputs(); // run on page load
+  function restoreEmptyRows() {
+    itemRowsContainer.innerHTML = '';
+    if (!rowTemplate || !rowTemplate.content) return;
+    for (var i = 0; i < 5; i++) {
+      var clone = rowTemplate.content.cloneNode(true);
+      itemRowsContainer.appendChild(clone);
+    }
+    itemRowsContainer.querySelectorAll('.item-typeahead').forEach(function(wrapper) {
+      if (window.initItemTypeahead) window.initItemTypeahead(wrapper);
+    });
+  }
+
+  function fillPoInCurrentStructure(orderNo) {
+    if (!orderNo) {
+      var supplierInput = supplierTypeahead && supplierTypeahead.querySelector('.supplier-typeahead-input');
+      var supplierHidden = supplierTypeahead && supplierTypeahead.querySelector('input[name="supplier_id"]');
+      if (supplierInput) supplierInput.value = '';
+      if (supplierHidden) supplierHidden.value = '';
+      restoreEmptyRows();
+      return;
+    }
+    fetch('get_po_details.php?order_no=' + encodeURIComponent(orderNo))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!data.success) return;
+        var supplierInput = supplierTypeahead && supplierTypeahead.querySelector('.supplier-typeahead-input');
+        var supplierHidden = supplierTypeahead && supplierTypeahead.querySelector('input[name="supplier_id"]');
+        if (supplierInput) supplierInput.value = (data.supplier_id || '') + ' - ' + (data.supplier_name || '');
+        if (supplierHidden) supplierHidden.value = data.supplier_id || '';
+
+        itemRowsContainer.innerHTML = '';
+        var items = data.items || [];
+        items.forEach(function(it) {
+          var tr = document.createElement('tr');
+          tr.className = 'item-row';
+          tr.style.fontSize = '15px';
+          var price = parseFloat(it.price) || 0;
+          var qty = parseInt(it.qty, 10) || 0;
+          var amount = parseFloat(it.amount) || 0;
+          var itemText = (it.item_id || '') + ' - ' + (it.item_name || '');
+
+          var tdItem = document.createElement('td');
+          tdItem.className = 'no-padding';
+          tdItem.style.minWidth = '250px';
+          var inpItem = document.createElement('input');
+          inpItem.type = 'text';
+          inpItem.className = 'custom-input';
+          inpItem.value = itemText;
+          inpItem.disabled = true;
+          inpItem.style.background = '#f5f5f5';
+          tdItem.appendChild(inpItem);
+
+          function numCell(val, cls) {
+            var td = document.createElement('td');
+            td.className = 'no-padding';
+            var inp = document.createElement('input');
+            inp.type = 'number';
+            inp.className = 'custom-input text-right ' + (cls || '');
+            inp.value = val;
+            inp.disabled = true;
+            inp.style.background = '#f5f5f5';
+            td.appendChild(inp);
+            return td;
+          }
+          var tdStock = document.createElement('td');
+          tdStock.className = 'text-right';
+          tdStock.appendChild(document.createElement('span'));
+
+          tr.appendChild(tdItem);
+          tr.appendChild(numCell(price, 'original_price'));
+          tr.appendChild(tdStock);
+          tr.appendChild(numCell(0, 'discount'));
+          tr.appendChild(numCell(qty, 'qty'));
+          tr.appendChild(numCell(0, 'foc'));
+          tr.appendChild(numCell(amount, ''));
+          tr.appendChild(document.createElement('td'));
+          itemRowsContainer.appendChild(tr);
+        });
+      })
+      .catch(function() {});
+  }
+
+  poSelect.addEventListener('change', function() {
+    var val = poSelect.value.trim();
+    if (val) {
+      fillPoInCurrentStructure(val);
+      toggleInputs(true);
+    } else {
+      fillPoInCurrentStructure(null);
+      toggleInputs(false);
+    }
+  });
+  toggleInputs(!!poSelect.value);
+  if (poSelect.value) fillPoInCurrentStructure(poSelect.value);
 });
 </script>
 
@@ -564,3 +608,142 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 </script>
 <?php include 'footer.html'; ?>
+<!-- Supplier typeahead -->
+<script>
+(function() {
+  if (typeof suppliersList === 'undefined') suppliersList = [];
+  function displayText(s) { return s.supplier_id + ' - ' + s.supplier_name; }
+  function filterSuppliers(q) {
+    q = (q || '').trim().toLowerCase();
+    if (!q) return suppliersList.slice(0, 50);
+    return suppliersList.filter(function(s) {
+      var text = (s.supplier_id + ' - ' + (s.supplier_name || '')).toLowerCase();
+      return text === q || (s.supplier_id && s.supplier_id.toString().toLowerCase().indexOf(q) !== -1) || (s.supplier_name && s.supplier_name.toLowerCase().indexOf(q) !== -1);
+    }).slice(0, 50);
+  }
+  function renderDropdown(dropdownEl, list, onSelect) {
+    dropdownEl.innerHTML = '';
+    if (list.length === 0) dropdownEl.innerHTML = '<div class="no-result">No matching supplier</div>';
+    else list.forEach(function(s) {
+      var div = document.createElement('div'); div.className = 'option'; div.textContent = displayText(s);
+      div.addEventListener('click', function() { onSelect(s.supplier_id, displayText(s)); });
+      dropdownEl.appendChild(div);
+    });
+    dropdownEl.classList.add('show');
+  }
+  function initSupplierTypeahead(wrapper) {
+    var input = wrapper.querySelector('.supplier-typeahead-input');
+    var hidden = wrapper.querySelector('input[name="supplier_id"]');
+    var dropdown = wrapper.querySelector('.supplier-typeahead-dropdown');
+    if (!input || !hidden || !dropdown) return;
+    input.addEventListener('input', function() {
+      var q = input.value.trim();
+      if (!q) { hidden.value = ''; dropdown.classList.remove('show'); return; }
+      renderDropdown(dropdown, filterSuppliers(q), function(id, text) { hidden.value = id; input.value = text; dropdown.classList.remove('show'); });
+    });
+    input.addEventListener('focus', function() {
+      renderDropdown(dropdown, filterSuppliers(input.value.trim()), function(id, text) { hidden.value = id; input.value = text; dropdown.classList.remove('show'); });
+    });
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { dropdown.classList.remove('show'); return; }
+      var opts = dropdown.querySelectorAll('.option');
+      if (opts.length === 0) return;
+      var active = dropdown.querySelector('.option.active');
+      if (e.key === 'ArrowDown') { e.preventDefault(); if (!active) { opts[0].classList.add('active'); return; } active.classList.remove('active'); var next = active.nextElementSibling; if (next) next.classList.add('active'); else opts[0].classList.add('active'); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); if (!active) { opts[opts.length - 1].classList.add('active'); return; } active.classList.remove('active'); var prev = active.previousElementSibling; if (prev) prev.classList.add('active'); else opts[opts.length - 1].classList.add('active'); }
+      else if (e.key === 'Enter' && active) { e.preventDefault(); active.click(); }
+    });
+    document.addEventListener('click', function(e) { if (!wrapper.contains(e.target)) dropdown.classList.remove('show'); });
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.supplier-typeahead').forEach(initSupplierTypeahead);
+  });
+})();
+</script>
+<!-- Item typeahead (multiple rows) -->
+<script>
+(function() {
+  if (typeof itemsList === 'undefined') itemsList = [];
+  function itemDisplayText(it) { return (it.item_id || '') + ' - ' + (it.item_name || ''); }
+  function filterItems(q) {
+    q = (q || '').trim().toLowerCase();
+    if (!q) return itemsList.slice(0, 50);
+    return itemsList.filter(function(it) {
+      var text = itemDisplayText(it).toLowerCase();
+      return text === q || (it.item_id && it.item_id.toString().toLowerCase().indexOf(q) !== -1) || (it.item_name && it.item_name.toLowerCase().indexOf(q) !== -1);
+    }).slice(0, 50);
+  }
+  function renderItemDropdown(dropdownEl, list, onSelect) {
+    dropdownEl.innerHTML = '';
+    if (list.length === 0) dropdownEl.innerHTML = '<div class="no-result">No matching item</div>';
+    else list.forEach(function(it) {
+      var div = document.createElement('div'); div.className = 'option'; div.textContent = itemDisplayText(it);
+      div.addEventListener('click', function() { onSelect(it); });
+      dropdownEl.appendChild(div);
+    });
+    dropdownEl.classList.add('show');
+  }
+  function initItemTypeahead(wrapper) {
+    if (!wrapper) return;
+    var input = wrapper.querySelector('.item-typeahead-input');
+    var hiddenId = wrapper.querySelector('input.item_id');
+    var hiddenName = wrapper.querySelector('input.item_name');
+    var dropdown = wrapper.querySelector('.item-typeahead-dropdown');
+    var row = wrapper.closest('.item-row');
+    var priceInput = row ? row.querySelector('.original_price') : null;
+    var stockSpan = row ? row.querySelector('.stock_balance') : null;
+    if (!input || !hiddenId || !hiddenName || !dropdown) return;
+    function onSelectItem(it) {
+      hiddenId.value = it.item_id || ''; hiddenName.value = it.item_name || '';
+      input.value = itemDisplayText(it);
+      if (priceInput) {
+        priceInput.value = it.original_price != null ? it.original_price : '';
+        priceInput.dispatchEvent(new Event('input'));
+      }
+      dropdown.classList.remove('show');
+      if (stockSpan) {
+        stockSpan.innerText = '';
+        stockSpan.style.color = '';
+        fetch('get_item_by_id.php?item_id=' + encodeURIComponent(it.item_id)).then(function(r) { return r.json(); }).then(function(data) {
+          if (data.success && stockSpan) {
+            var bal = parseInt(data.stock_balance, 10) || 0;
+            if (bal > 0) {
+              stockSpan.innerText = bal;
+              stockSpan.style.color = '';
+            } else {
+              stockSpan.innerText = 'Out of Stock';
+              stockSpan.style.color = 'red';
+            }
+          }
+        }).catch(function() {});
+      }
+    }
+    input.addEventListener('input', function() {
+      var q = input.value.trim();
+      if (!q) {
+        hiddenId.value = ''; hiddenName.value = '';
+        if (priceInput) priceInput.value = '';
+        if (stockSpan) { stockSpan.innerText = ''; stockSpan.style.color = ''; }
+        dropdown.classList.remove('show');
+        return;
+      }
+      renderItemDropdown(dropdown, filterItems(q), onSelectItem);
+    });
+    input.addEventListener('focus', function() { renderItemDropdown(dropdown, filterItems(input.value.trim()), onSelectItem); });
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { dropdown.classList.remove('show'); return; }
+      var opts = dropdown.querySelectorAll('.option');
+      if (opts.length === 0) return;
+      var active = dropdown.querySelector('.option.active');
+      if (e.key === 'ArrowDown') { e.preventDefault(); if (!active) { opts[0].classList.add('active'); return; } active.classList.remove('active'); var next = active.nextElementSibling; if (next) next.classList.add('active'); else opts[0].classList.add('active'); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); if (!active) { opts[opts.length - 1].classList.add('active'); return; } active.classList.remove('active'); var prev = active.previousElementSibling; if (prev) prev.classList.add('active'); else opts[opts.length - 1].classList.add('active'); }
+      else if (e.key === 'Enter' && active) { e.preventDefault(); active.click(); }
+    });
+    document.addEventListener('click', function(e) { if (!wrapper.contains(e.target)) dropdown.classList.remove('show'); });
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.item-typeahead').forEach(initItemTypeahead);
+  });
+  window.initItemTypeahead = initItemTypeahead;
+})();
+</script>

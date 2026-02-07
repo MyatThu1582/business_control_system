@@ -79,6 +79,8 @@ if (empty($_POST['search'])) {
           <th>Original Price</th>
           <th>Selling Price</th>
           <th>Reorder Level</th>
+          <th>Location</th>
+          <th>Expiry Date</th>
           <th>Image</th>
           <th style="width:40px;">Actions</th>
         </tr>
@@ -105,6 +107,8 @@ if (empty($_POST['search'])) {
               <td class="text-right"><?php echo number_format($value['original_price']); ?></td>
               <td class="text-right"><?php echo number_format($value['selling_price']); ?></td>
               <td class="text-right"><?php echo number_format($value['reorder_level']); ?></td>
+              <td class="text-right"><?php echo $value['location']; ?></td>
+              <td class="text-right"><?php echo $value['expiry_date']; ?></td>
               <td>
                 <?php
                 if(!empty($value['item_image'])){
