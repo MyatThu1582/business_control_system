@@ -53,7 +53,7 @@ foreach ($items as $item) {
     <div class="header">
         <div class="logo-area">
             <?php if(!empty($company['logo'])): ?>
-                <img src="../uploads/<?php echo htmlspecialchars($company['logo']); ?>" alt="Logo" class="logo">
+                <img src="uploads/<?php echo htmlspecialchars($company['logo']); ?>" alt="Logo" class="logo">
             <?php endif; ?>
         </div>
         <div class="company-details">

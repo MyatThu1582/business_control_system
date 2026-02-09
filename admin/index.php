@@ -67,7 +67,7 @@ $totalProfit = $stmt->fetch(PDO::FETCH_ASSOC)['total_profit'];
 
     <div class="text-center mb-5" style="border-bottom: 1px solid grey; padding-top: 8%; padding-bottom: 15%;">
         <?php if (!empty($company['logo'])): ?>
-            <img src="../uploads/<?php echo rawurlencode($company['logo']); ?>" class="logo-preview mt-4" alt="Logo">
+            <img src="uploads/<?php echo rawurlencode($company['logo']); ?>" class="logo-preview mt-4" alt="Logo">
         <?php endif; ?>
     </div>
     <div class="d-flex px-2 justify-content-between">
