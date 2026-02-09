@@ -5,7 +5,7 @@ if (empty($_SESSION['user_id'])) {
     exit;
 }
 
-require __DIR__ . '/../Config/config.php';
+require __DIR__ . '/../config/config.php';
 
 set_time_limit(0);
 

@@ -4,8 +4,8 @@
     header("Location: login.php");
     exit;
 }
-  require '../Config/config.php';
-  require '../Config/common.php';
+  require '../config/config.php';
+  require '../config/common.php';
 ?>
 <?php include 'header.php'; ?>
 <?php

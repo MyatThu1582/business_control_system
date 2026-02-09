@@ -1,9 +1,4 @@
 <?php
-// Compatibility wrapper: allow legacy 'Config/common.php' includes
-// to use the central lower-case 'config/common.php' file.
-require_once __DIR__ . '/../config/common.php';
-?>
-<?php
   // if (empty($_SESSION['_token'])) {
   //   if (function_exists('random_bytes')) {
   //     $_SESSION['_token'] = bin2hex(random_bytes(32));

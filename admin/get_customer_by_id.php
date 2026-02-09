@@ -1,6 +1,6 @@
 <?php
 header("Content-Type: application/json");
-require '../Config/config.php'; // uses $pdo
+require '../config/config.php'; // uses $pdo
 
 if(isset($_GET['customer_id'])){
     $customer_id = $_GET['customer_id'];
