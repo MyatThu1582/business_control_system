@@ -81,12 +81,14 @@ if (isset($_POST['add_btn'])) {
         $price = trim($prices[$index] ?? '');
 
         if (!empty($item_id) && !empty($qty) && !empty($price)) {
+            $d = $discounts[$index] ?? 0;
+            $f = $focs[$index] ?? 0;
             $filtered_items[] = [
                 'item_id'  => $item_id,
                 'qty'      => $qty,
                 'price'    => $price,
-                'discount' => $discounts[$index] ?? 0,
-                'foc' => $focs[$index] ?? 0,
+                'discount' => ($d !== '' && $d !== null) ? (float) $d : 0,
+                'foc' => ($f !== '' && $f !== null) ? (int) $f : 0,
             ];
         }
     }
@@ -205,9 +207,9 @@ if (isset($_POST['add_btn'])) {
                     ':price' => $item['price'],
                     ':qty' => $item['qty'],
                     ':type' => $type,
-                    ':percentage' => $item['discount'],
+                    ':percentage' => (float) $item['discount'],
                     ':percentage_amount' => $percentage_amount,
-                    ':stock_foc' => $foc,
+                    ':stock_foc' => (int) $foc,
                     ':amount' => $amount,
                     ':gin_no' => $gin_no,
                     ':temp_sale_id' => $temp_sale_id
