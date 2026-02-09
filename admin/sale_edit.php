@@ -5,8 +5,8 @@ if (empty($_SESSION['user_id'])) {
   exit;
 }
 
-require '../Config/config.php';
-require '../Config/common.php';
+require '../config/config.php';
+require '../config/common.php';
 
 // Legacy file: redirect to the current editor page (`sale_detail.php`).
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;

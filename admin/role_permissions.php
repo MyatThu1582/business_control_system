@@ -1,6 +1,6 @@
 <?php
 session_start();
-require '../Config/config.php'; // your common file
+require '../config/config.php'; // your common file
 require 'permission.php';    // contains hasPermission() helper
 
 // Only users with permission.manage can access
@@ -10,7 +10,7 @@ if (!hasPermission('permissions.manage')) {
 }
 
 // Database connection (replace with your db connection)
-require '../Config/common.php';
+require '../config/common.php';
 
 // Get roles for dropdown
 $rolesStmt = $pdo->prepare("SELECT id, name FROM roles ORDER BY name");
