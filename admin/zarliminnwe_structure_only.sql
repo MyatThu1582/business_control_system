@@ -85,6 +85,12 @@ CREATE TABLE `company` (
   `logo` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Default company (for logo / app settings)
+--
+INSERT INTO `company` (`id`, `name`, `street_name`, `building_no`, `phone`, `email`, `city`, `country`, `bank_account`, `logo`) VALUES
+(1, 'Golden Future Co.,Ltd', 'Insein Road', 'No.45', 9795799559, 'contact@goldenfuture.com', 'Yangon', 'Myanmar', 'CB-0044556677', 'transparent-Photoroom (2).png');
+
 -- --------------------------------------------------------
 
 --
@@ -187,6 +193,33 @@ CREATE TABLE `permissions` (
   `description` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
+--
+-- Permissions (required for role_permissions and login)
+--
+INSERT INTO `permissions` (`id`, `name`, `permission_key`, `description`) VALUES
+(11, 'roles.manage', 'roles.manage', 'Manage Roles (roles.php)'),
+(12, 'users.manage', 'users.manage', 'Manage Users (users.php)'),
+(13, 'permissions.manage', 'permissions.manage', 'Manage Permissions (role_permissions.php)'),
+(14, 'category.view', 'category.view', 'View Categories (category.php)'),
+(15, 'item.view', 'item.view', 'View Items (item.php)'),
+(16, 'supplier.view', 'supplier.view', 'View Suppliers (supplier.php)'),
+(17, 'customer.view', 'customer.view', 'View Customers (customer.php)'),
+(18, 'purchase.order.view', 'purchase.order.view', 'View Purchase Orders (purchase_order.php)'),
+(19, 'purchase.create', 'purchase.create', 'Create Purchase (add_purchase.php)'),
+(20, 'purchase.view', 'purchase.view', 'View Purchase Bills (purchase.php)'),
+(21, 'purchase.return', 'purchase.return', 'Purchase Return (purchase_return.php)'),
+(22, 'sale.order.view', 'sale.order.view', 'View Sale Orders (sale_order.php)'),
+(23, 'sale.create', 'sale.create', 'Create Sale (sale.php)'),
+(24, 'sale.return', 'sale.return', 'Sale Return (sale_return.php)'),
+(25, 'account.payable.view', 'account.payable.view', 'View Account Payable (account_payable.php)'),
+(26, 'account.payable.detail', 'account.payable.detail', 'View Account Payable Detail (account_payable_detail.php)'),
+(27, 'account.payable.voucher', 'account.payable.voucher', 'View Account Payable Per Voucher (account_payable_detail_per_voucher.php)'),
+(28, 'account.receivable.view', 'account.receivable.view', 'View Account Receivable (account_receivable.php)'),
+(29, 'account.receivable.detail', 'account.receivable.detail', 'View Account Receivable Detail (account_receivable_detail.php)'),
+(30, 'stock.manage', 'stock.manage', 'Manage Stock (stock_control.php)'),
+(31, 'report.view', 'report.view', 'View Reports (choose_report.php)'),
+(32, 'company.manage', 'company.manage', 'Manage Company (company.php)');
+
 -- --------------------------------------------------------
 
 --
@@ -271,6 +304,14 @@ CREATE TABLE `roles` (
   `description` text NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Roles (Admin required for login)
+--
+INSERT INTO `roles` (`id`, `name`, `description`) VALUES
+(1, 'Admin', 'This is Admin & can access the whole module'),
+(2, 'User', 'User can not access all module, only allowed by admin'),
+(3, 'Sale', 'Only can access configurations and sale section');
+
 -- --------------------------------------------------------
 
 --
@@ -281,6 +322,12 @@ CREATE TABLE `role_permissions` (
   `role_id` int(11) NOT NULL,
   `permission_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+--
+-- Admin role (id=1) has all permissions
+--
+INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
+(1, 11),(1, 12),(1, 13),(1, 14),(1, 15),(1, 16),(1, 17),(1, 18),(1, 19),(1, 20),(1, 21),(1, 22),(1, 23),(1, 24),(1, 25),(1, 26),(1, 27),(1, 28),(1, 29),(1, 30),(1, 31),(1, 32);
 
 -- --------------------------------------------------------
 
@@ -448,7 +495,16 @@ CREATE TABLE `users` (
   `email` varchar(100) NOT NULL,
   `password` varchar(255) NOT NULL,
   `role` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;--
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Admin user (change password after first login)
+-- Email: admin@gmail.com  |  Password: (from original dump - set your own after import)
+--
+INSERT INTO `users` (`id`, `name`, `email`, `password`, `role`) VALUES
+(1, 'Admin', 'admin@gmail.com', '$2y$10$H8rj.d8lrK9upNxBSXfESuJK8V527GNRazh4cInVoEoSmex5z5se2', 1);
+
+--
 -- Indexes for dumped tables
 --
 
