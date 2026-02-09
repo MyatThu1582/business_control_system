@@ -1,4 +1,9 @@
 <?php
+// Compatibility wrapper: allow legacy 'Config/config.php' includes
+// to use the central lower-case 'config/config.php' file.
+require_once __DIR__ . '/../config/config.php';
+?>
+<?php
 define('MYSQL_USER', 'root');
 define('MYSQL_PASSWORD', '');
 define('MYSQL_HOST', 'localhost');

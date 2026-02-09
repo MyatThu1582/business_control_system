@@ -1,7 +1,7 @@
 <?php
 session_start();
-require '../Config/config.php';
-require '../Config/common.php';
+require '../config/config.php';
+require '../config/common.php';
   ?>
 
   <?php include 'header.php'; ?>

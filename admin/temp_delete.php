@@ -1,5 +1,5 @@
 <?php
-include 'Config/config.php';
+include '../config/config.php';
 $stmt = $pdo->prepare("DELETE FROM temp_purchase WHERE id=".$_GET['id']);
 $stmt->execute();
 header('Location: purchase.php');
