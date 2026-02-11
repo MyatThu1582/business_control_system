@@ -4,8 +4,8 @@ if (empty($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
 }
-require '../Config/config.php';
-require '../Config/common.php';
+require '../config/config.php';
+require '../config/common.php';
 
   ?>
  <?php include 'header.php';?>
@@ -43,12 +43,14 @@ require '../Config/common.php';
 
           // keep rows with valid data only
           if (!empty($item_id) && !empty($qty) && !empty($price)) {
+              $d = $discounts[$index] ?? 0;
+              $f = $focs[$index] ?? 0;
               $filtered_items[] = [
                   'item_id' => $item_id,
                   'qty' => $qty,
                   'price' => $price,
-                  'discount' => $discounts[$index] ?? 0,
-                  'foc' => $focs[$index] ?? 0,
+                  'discount' => ($d !== '' && $d !== null) ? (float) $d : 0,
+                  'foc' => ($f !== '' && $f !== null) ? (int) $f : 0,
               ];
           }
       }
@@ -183,9 +185,9 @@ require '../Config/common.php';
                       ':price' => $price,
                       ':qty' => $qty,
                       ':type' => $type,
-                      ':percentage' => $discount,
+                      ':percentage' => (float) $discount,
                       ':percentage_amount' => $percentage_amount,
-                      ':stock_foc' => $foc,
+                      ':stock_foc' => (int) $foc,
                       ':amount' => $amount,
                       ':grn_no' => $grn_no,
                       ':temp_purchase_id' => $temp_purchase_id

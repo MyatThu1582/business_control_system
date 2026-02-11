@@ -4,8 +4,8 @@ if (empty($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
 }
-require '../Config/config.php';
-require '../Config/common.php';
+require '../config/config.php';
+require '../config/common.php';
 include 'header.php';
   
   $supplierstmt = $pdo->prepare("SELECT DISTINCT supplier_id FROM payable");

@@ -4,8 +4,8 @@ if (empty($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
 }
-require '../Config/config.php';
-require '../Config/common.php';
+require '../config/config.php';
+require '../config/common.php';
 require 'header.php';
 
 $user_id = $_SESSION['user_id'];
@@ -30,7 +30,7 @@ if ($_POST) {
     // Handle logo upload
     if (!empty($_FILES['logo']['name'])) {
         $image = $_FILES['logo']['name'];
-        $file = '../uploads/' . $image;
+        $file = 'uploads/' . $image;
         $imageType = pathinfo($file, PATHINFO_EXTENSION);
 
         if ($imageType == 'jpg' || $imageType == 'jpeg' || $imageType == 'png') {
@@ -160,7 +160,7 @@ form{
                 <label class="form-label">Logo</label>
                 <input type="file" class="form-control" name="logo">
                 <?php if (!empty($company['logo'])): ?>
-                    <img src="../uploads/<?php echo htmlspecialchars($company['logo']); ?>" class="logo-preview mt-4" alt="Logo">
+                    <img src="uploads/<?php echo htmlspecialchars($company['logo']); ?>" class="logo-preview mt-4" alt="Logo">
                 <?php endif; ?>
             <button type="submit" class="btn btn-save mt-5">Save</button>
             </div>

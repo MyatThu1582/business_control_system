@@ -2,8 +2,8 @@
 session_start();
 if (empty($_SESSION['user_id'])) exit;
 
-require '../Config/config.php';
-require '../Config/common.php';
+require '../config/config.php';
+require '../config/common.php';
 
 // Get period from GET
 $period = isset($_GET['period']) ? $_GET['period'] : 'monthly';

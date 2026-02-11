@@ -6,8 +6,8 @@ if (empty($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
 }
-require '../Config/config.php';
-require '../Config/common.php';
+require '../config/config.php';
+require '../config/common.php';
 ?>
 <?php 
   $action = $_GET['action'] ?? 'show';
@@ -81,7 +81,7 @@ $company = $stmt->fetch(PDO::FETCH_ASSOC);
   <div class="header">
       <div class="logo-area">
           <?php if(!empty($company['logo'])): ?>
-              <img src="../uploads/<?php echo htmlspecialchars($company['logo']); ?>" alt="Logo" class="logo">
+              <img src="uploads/<?php echo htmlspecialchars($company['logo']); ?>" alt="Logo" class="logo">
           <?php endif; ?>
       </div>
       <div class="company-details">

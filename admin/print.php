@@ -4,8 +4,8 @@ if (empty($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
 }
-require '../Config/config.php';
-require '../Config/common.php';
+require '../config/config.php';
+require '../config/common.php';
 
 // Company info
 $user_id = $_SESSION['user_id'];
@@ -53,7 +53,7 @@ foreach ($items as $item) {
     <div class="header">
         <div class="logo-area">
             <?php if(!empty($company['logo'])): ?>
-                <img src="../uploads/<?php echo htmlspecialchars($company['logo']); ?>" alt="Logo" class="logo">
+                <img src="uploads/<?php echo htmlspecialchars($company['logo']); ?>" alt="Logo" class="logo">
             <?php endif; ?>
         </div>
         <div class="company-details">

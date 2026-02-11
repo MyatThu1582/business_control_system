@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <?php
 // session_start();
-// require '../Config/common.php';
+// require '../config/common.php';
 $current_page = basename($_SERVER['PHP_SELF']);
 require_once 'permission.php';    // contains hasPermission() helper
 

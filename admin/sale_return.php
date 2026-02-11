@@ -4,8 +4,8 @@
       header("Location: login.php");
       exit;
   }
-  require '../Config/config.php';
-  require '../Config/common.php';
+  require '../config/config.php';
+  require '../config/common.php';
   include 'header.php';
 
   $sale_returnstmt = $pdo->prepare("SELECT * FROM sale_return ORDER BY id DESC");

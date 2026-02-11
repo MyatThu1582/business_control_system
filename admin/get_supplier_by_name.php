@@ -1,6 +1,6 @@
 <?php
 header("Content-Type: application/json");
-require '../Config/config.php';
+require '../config/config.php';
 
 if (isset($_GET['supplier_name'])) {
     $supplier_name = $_GET['supplier_name'];

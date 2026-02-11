@@ -1,7 +1,7 @@
 <?php
 session_start();
-require '../Config/config.php';
-require '../Config/common.php';
+require '../config/config.php';
+require '../config/common.php';
 
 // Check if company_id is passed (from registration flow)
 if(!isset($_GET['company_id'])) {

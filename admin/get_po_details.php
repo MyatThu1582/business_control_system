@@ -1,6 +1,6 @@
 <?php
 header("Content-Type: application/json");
-require '../Config/config.php';
+require '../config/config.php';
 
 if (!isset($_GET['order_no']) || trim($_GET['order_no']) === '') {
     echo json_encode(['success' => false, 'message' => 'order_no required']);

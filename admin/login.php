@@ -1,7 +1,7 @@
 <?php
 session_start();
-require '../Config/config.php';
-require '../Config/common.php';
+require '../config/config.php';
+require '../config/common.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email']);
@@ -203,7 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="container-box">
         <!-- Left Side (Login Form) -->
         <div class="left-side">
-	    <img src="../uploads/zlmnlogo.jpg" width="200" height="200">
+	    <img src="uploads/zlmnlogo.jpg" width="200" height="200">
             <h4>Business Control System</h4>
 
             <?php if (!empty($_SESSION['error'])): ?>

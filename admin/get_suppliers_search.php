@@ -1,6 +1,6 @@
 <?php
 header("Content-Type: application/json");
-require '../Config/config.php';
+require '../config/config.php';
 
 $q = isset($_GET['q']) ? trim($_GET['q']) : '';
 
