@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 07, 2026 at 06:01 AM
+-- Generation Time: Feb 11, 2026 at 05:24 AM
 -- Server version: 10.4.28-MariaDB
 -- PHP Version: 8.2.4
 
@@ -211,7 +211,9 @@ INSERT INTO `customer` (`id`, `customer_id`, `customer_name`, `customer_phone`, 
 (21, 'CUS-018', 'Ei Ei', 928877668, 'Lashio'),
 (22, 'CUS-019', 'Aye Aye', 937766559, 'Meiktila'),
 (23, 'CUS-020', 'Hnin Hnin', 9466554, 'Yangon'),
-(24, 'CUS-000', 'Default Customer', 912345671, 'Yangon');
+(24, 'CUS-000', 'Default Customer', 912345671, 'Yangon'),
+(25, 'CUS-030', 'AUNG MYO ZAW', 997721152, 'YANGON'),
+(26, 'CUS-025', 'laksjdflkajs', 0, '');
 
 -- --------------------------------------------------------
 
@@ -237,13 +239,13 @@ CREATE TABLE `item` (
 --
 
 INSERT INTO `item` (`id`, `item_id`, `item_name`, `categories_id`, `original_price`, `selling_price`, `reorder_level`, `item_image`, `expiry_date`, `location`) VALUES
-(1, 'ITM-001', 'Essence of chicken', 'CAT-006', 5000, 5500, 5, '', NULL, NULL),
-(2, 'ITM-002', 'Albendazole', 'CAT-006', 20, 700, 20, '', NULL, NULL),
-(3, 'ITM-003', 'Clarithromucin 250mg', 'CAT-006', 500, 600, 20, '', NULL, NULL),
-(4, 'ITM-004', 'Mebendazle 500mg', 'CAT-006', 1300, 1500, 8, '', NULL, NULL),
-(5, 'ITM-005', 'Erythromycin Stearate -250mg', 'CAT-006', 200, 250, 100, '', NULL, NULL),
+(1, 'ITM-001', 'Essence of chicken', 'CAT-006', 5000, 5500, 5, '1770445737_images (1).jfif', '2026-12-07', 'Rack B / Section 4'),
+(2, 'ITM-002', 'Albendazole', 'CAT-006', 20, 700, 20, '1770445617_Albendazole.jfif', '2026-12-07', 'Rack A / Section 4'),
+(3, 'ITM-003', 'Clarithromucin 250mg', 'CAT-006', 500, 600, 20, '1770445592_Clarithromucin 250mg.jfif', '2027-01-07', 'Rack A / Section 4'),
+(4, 'ITM-004', 'Mebendazle 500mg', 'CAT-006', 1300, 1500, 8, '1770445459_mebendazole-500mg-tablet.jpeg', '2027-01-01', 'Rack A / Section 6'),
+(5, 'ITM-005', 'Erythromycin Stearate -250mg', 'CAT-006', 200, 250, 100, '1770445033_Erythromycin-Stearate-Tablets.jpg', '2027-01-01', 'Rack A / Section 4'),
 (6, 'ITM-006', 'a ba hta inhlar (big)', 'CAT-006', 2500, 2900, 5, '1770349930_abahta.jfif', NULL, NULL),
-(8, 'ITM-007', 'Testing', 'CAT-004', 120, 150, 30, '1770434542_images (2).jfif', '2027-02-01', 'Rack A / Section 5');
+(9, 'ITM-007', 'a ba hta inhlar', 'CAT-006', 1700, 2000, 10, '1770445886_images (2).jfif', '2027-01-07', 'Rack A / Section 1');
 
 -- --------------------------------------------------------
 
@@ -307,7 +309,9 @@ INSERT INTO `permissions` (`id`, `name`, `permission_key`, `description`) VALUES
 (29, 'account.receivable.detail', 'account.receivable.detail', 'View Account Receivable Detail (account_receivable_detail.php)'),
 (30, 'stock.manage', 'stock.manage', 'Manage Stock (stock_control.php)'),
 (31, 'report.view', 'report.view', 'View Reports (choose_report.php)'),
-(32, 'company.manage', 'company.manage', 'Manage Company (company.php)');
+(32, 'company.manage', 'company.manage', 'Manage Company (company.php)'),
+(34, 'backup.manage', 'backup.manage', 'Manage Data Backup(backup.php)'),
+(35, 'restore.manage', 'restore.manage', 'Manage Data Restore(restore.php)');
 
 -- --------------------------------------------------------
 
@@ -462,6 +466,8 @@ INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES
 (1, 30),
 (1, 31),
 (1, 32),
+(1, 34),
+(1, 35),
 (2, 14),
 (2, 15),
 (2, 16),
@@ -493,6 +499,13 @@ CREATE TABLE `sale_order` (
   `status` varchar(100) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `sale_order`
+--
+
+INSERT INTO `sale_order` (`id`, `order_no`, `customer_id`, `order_date`, `status`) VALUES
+(1, 'PO-258300', 'CUS-006', '2026-02-07', 'Pending');
+
 -- --------------------------------------------------------
 
 --
@@ -508,6 +521,13 @@ CREATE TABLE `sale_order_items` (
   `order_no` varchar(100) NOT NULL,
   `sale_orderid` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `sale_order_items`
+--
+
+INSERT INTO `sale_order_items` (`id`, `item_id`, `price`, `qty`, `amount`, `order_no`, `sale_orderid`) VALUES
+(1, 'ITM-002', 700, 2, 1400, 'PO-258300', 1);
 
 -- --------------------------------------------------------
 
@@ -609,7 +629,8 @@ INSERT INTO `supplier` (`id`, `supplier_id`, `supplier_name`, `supplier_phone`, 
 (20, 'SUP-017', 'Fast Move Distribution', 919988776, 'Mandalay'),
 (21, 'SUP-018', 'Prime Source Myanmar', 928877665, 'Lashio'),
 (24, 'SUP-000', 'Default Supplier', 253, 'Yangon'),
-(25, 'SUP-021', 'KOO', 989, 'Yangon');
+(25, 'SUP-021', 'KOO', 989, 'Yangon'),
+(26, 'SUP-099', 'lakdjflaksjdflaksdjf', 0, 'Yangon');
 
 -- --------------------------------------------------------
 
@@ -975,13 +996,13 @@ ALTER TABLE `credit_sale`
 -- AUTO_INCREMENT for table `customer`
 --
 ALTER TABLE `customer`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 
 --
 -- AUTO_INCREMENT for table `item`
 --
 ALTER TABLE `item`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `payable`
@@ -993,7 +1014,7 @@ ALTER TABLE `payable`
 -- AUTO_INCREMENT for table `permissions`
 --
 ALTER TABLE `permissions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
 
 --
 -- AUTO_INCREMENT for table `purchase_order`
@@ -1029,13 +1050,13 @@ ALTER TABLE `roles`
 -- AUTO_INCREMENT for table `sale_order`
 --
 ALTER TABLE `sale_order`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `sale_order_items`
 --
 ALTER TABLE `sale_order_items`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `sale_return`
@@ -1053,7 +1074,7 @@ ALTER TABLE `stock`
 -- AUTO_INCREMENT for table `supplier`
 --
 ALTER TABLE `supplier`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 
 --
 -- AUTO_INCREMENT for table `temp_purchase`
