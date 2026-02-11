@@ -3,7 +3,12 @@ session_start();
 if (empty($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
+    }
+require 'permission.php';
+if (!hasPermission('backup.manage')) {
+    die('Access Denied');
 }
+
 require '../Config/config.php';
 require '../Config/common.php';
 ?>

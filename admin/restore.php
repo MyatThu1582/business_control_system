@@ -4,6 +4,11 @@ if (empty($_SESSION['user_id'])) {
   header("Location: login.php");
   exit;
 }
+require 'permission.php';
+if (!hasPermission('restore.manage')) {
+    die('Access Denied');
+}
+
 require '../Config/config.php';
 require '../Config/common.php';
 ?>

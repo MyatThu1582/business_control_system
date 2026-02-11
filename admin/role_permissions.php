@@ -90,9 +90,13 @@ include 'header.php'; // your header file
             // Define permission groups
             $permissionGroups = [
                 'Roles & Users' => ['roles.manage', 'users.manage', 'permissions.manage'],
+
                 'Configurations' => ['category.view', 'item.view', 'supplier.view', 'customer.view'],
+
                 'Purchase' => ['purchase.order.view', 'purchase.create', 'purchase.view', 'purchase.return'],
+
                 'Sale' => ['sale.order.view', 'sale.create', 'sale.return'],
+
                 'Accounting' => [
                     'account.payable.view',
                     'account.payable.detail',
@@ -100,10 +104,20 @@ include 'header.php'; // your header file
                     'account.receivable.view',
                     'account.receivable.detail'
                 ],
+
                 'Stock' => ['stock.manage'],
+
                 'Reporting' => ['report.view'],
+
                 'Company' => ['company.manage'],
+
+                // 💾 NEW MODULE
+                'Backup & Restore' => [
+                    'backup.manage',
+                    'restore.manage'
+                ],
             ];
+
             ?>
             <form method="POST">
                 <input type="hidden" name="role_id" value="<?= $selectedRoleId ?>">
