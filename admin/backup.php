@@ -9,8 +9,8 @@ if (!hasPermission('backup.manage')) {
     die('Access Denied');
 }
 
-require '../Config/config.php';
-require '../Config/common.php';
+require '../config/config.php';
+require '../config/common.php';
 ?>
 <?php include 'header.php'; ?>
 
