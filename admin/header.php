@@ -507,6 +507,7 @@ background-color: #d0f0c0;
     font-size: 14px;
     background-color: rgba(255, 255, 255, 0.5);
   }
+
 </style>
 
 <body class="hold-transition sidebar-mini">
@@ -876,4 +877,24 @@ background-color: #d0f0c0;
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- import alert -->
+      <div class="mx-3 my-2">
+        <?php if (!empty($_SESSION['success'])): ?>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+          <?= htmlspecialchars($_SESSION['success']); unset($_SESSION['success']); ?>
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      <?php endif; ?>
+      <?php if (!empty($_SESSION['error'])): ?>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          <?= htmlspecialchars($_SESSION['error']); unset($_SESSION['error']); ?>
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      <?php endif; ?>
       </div>

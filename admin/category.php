@@ -60,6 +60,11 @@ if (empty($_POST['search'])) {
       <h1 class="card-title">Category Listings</h1>
     </div>
     <div class="d-flex text-right">
+      <div class="col ms-1">
+        <button type="button" class="btn import-btn btn-sm" data-toggle="modal" data-target="#importModal">
+          Import Excel
+        </button>
+      </div>
       <div class="col">
         <a href="export_excel.php?table=categories&search=<?= urlencode($_POST['search'] ?? '') ?>" class="btn export-btn btn-sm">
           <!-- <img src="images/excel.png" alt="Excel" width="20"> -->
@@ -149,6 +154,53 @@ if (empty($_POST['search'])) {
 
     </ul>
   </nav>
+</div>
+
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg"> <!-- increased width -->
+    <form action="import.php?table=category" method="post" enctype="multipart/form-data">
+      <div class="modal-content">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title" id="importModalLabel">
+            <i class="bi bi-file-earmark-spreadsheet me-2"></i> Import Excel
+          </h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Instructions -->
+          <div class="mb-3 p-3 border rounded bg-light">
+            <h6><i class="bi bi-info-circle-fill text-primary me-1"></i> How to Import</h6>
+            <ol class="mb-2">
+              <li><strong>Download Template:</strong> Click the button below <i class="bi bi-download ms-1"></i></li>
+              <li>Fill in your data. <em class="text-warning">Do not change column headers!</em></li>
+              <li>Save and upload using the file input below.</li>
+              <li>Click <strong>Upload</strong> to import the data.</li>
+            </ol>
+            <p class="text-danger mb-0"><strong>Note:</strong> Only columns in the template will be imported. Extra columns will be ignored.</p>
+          </div>
+
+          <!-- Template Download -->
+          <a href="templates/category_template.xlsx" class="btn btn-info btn-sm mb-3">
+            <i class="bi bi-download me-1"></i> Download Template
+          </a>
+
+          <!-- File Input -->
+          <input type="file" name="excel_file" accept=".xlsx,.xls" class="form-control" required>
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" name="import" class="btn btn-success">
+            <i class="bi bi-upload me-1"></i> Upload
+          </button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        </div>
+      </div>
+    </form>
+  </div>
 </div>
 
 <script>

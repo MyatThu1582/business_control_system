@@ -48,6 +48,11 @@
           <h1 class="card-title">Customer Listings</h1>
         </div>
         <div class="d-flex text-right">
+          <div class="col ms-1">
+            <button type="button" class="btn import-btn btn-sm" data-toggle="modal" data-target="#importModal">
+              Import Excel
+            </button>
+          </div>
           <div class="col">
             <a href="export_excel.php?table=customer&search=<?= urlencode($_POST['search'] ?? '') ?>" class="export-btn btn btn-sm">
               <!-- <img src="images/excel.png" alt="Excel" width="20"> -->
@@ -148,6 +153,54 @@
         </ul>
       </nav>
     </div>
+
+    <!-- Import Modal -->
+    <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <form action="import.php?table=customer" method="post" enctype="multipart/form-data">
+          <div class="modal-content">
+            <div class="modal-header bg-light">
+              <h5 class="modal-title" id="importModalLabel">
+                <i class="bi bi-file-earmark-spreadsheet me-2"></i> Import Customer Excel
+              </h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+
+            <div class="modal-body">
+              <!-- Instructions -->
+              <div class="mb-3 p-3 border rounded bg-light">
+                <h6><i class="bi bi-info-circle-fill text-primary me-1"></i> How to Import</h6>
+                <ol class="mb-2">
+                  <li><strong>Download Template:</strong> Click the button below <i class="bi bi-download ms-1"></i></li>
+                  <li>Fill in your supplier data. <em class="text-warning">Do not change column headers!</em></li>
+                  <li>Save and upload using the file input below.</li>
+                  <li>Click <strong>Upload</strong> to import the data.</li>
+                </ol>
+                <p class="text-danger mb-0"><strong>Note:</strong> Only the columns in the template will be imported. Extra columns will be ignored.</p>
+              </div>
+
+              <!-- Template Download -->
+              <a href="templates/customer_template.xlsx" class="btn btn-info btn-sm mb-3">
+                <i class="bi bi-download me-1"></i> Download Template
+              </a>
+
+              <!-- File Input -->
+              <input type="file" name="excel_file" accept=".xlsx,.xls" class="form-control" required>
+            </div>
+
+            <div class="modal-footer">
+              <button type="submit" name="import" class="btn btn-success">
+                <i class="bi bi-upload me-1"></i> Upload
+              </button>
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <script>
 document.querySelectorAll('.delete-customer').forEach(button => {
     button.addEventListener('click', function(e) {

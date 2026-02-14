@@ -16,7 +16,7 @@ if (!empty($_GET['pageno'])) {
 } else {
   $pageno = 1;
 }
-$numOfrecs = 10;
+$numOfrecs = 50;
 $offset = ($pageno - 1) * $numOfrecs;
 
 if (empty($_POST['search'])) {
@@ -49,6 +49,11 @@ if (empty($_POST['search'])) {
       <h1 class="card-title">Item Listings</h1>
     </div>
     <div class="d-flex text-right">
+      <div class="col ms-1">
+        <button type="button" class="btn import-btn btn-sm" data-toggle="modal" data-target="#importModal">
+          Import Excel
+        </button>
+      </div>
       <div class="col">
         <a href="export_excel.php?table=item&search=<?= urlencode($_POST['search'] ?? '') ?>" class="btn export-btn btn-sm">
           <!-- <img src="images/excel.png" alt="Excel" width="20"> -->
@@ -96,64 +101,111 @@ if (empty($_POST['search'])) {
 
       ?>
       <tbody>
-        <?php
-        if ($result) {
+      <?php
+      if ($result) {
           $idd = 1;
           foreach ($result as $value) {
-            $id = $value['categories_id'];
+              $id = $value['categories_id'];
 
-            $catStmt = $pdo->prepare("SELECT * FROM categories WHERE categories_code='$id'");
-            $catStmt->execute();
-            $catResult = $catStmt->fetch(PDO::FETCH_ASSOC);
-        ?>
-            <tr>
-              <td><?php echo $idd; ?></td>
-              <td><?php echo $value['item_id']; ?></td>
-              <td><?php echo $value['item_name']; ?></td>
-              <td><?php echo $catResult['categories_name']; ?></td>
-              <td class="text-right"><?php echo number_format($value['original_price']); ?></td>
-              <td class="text-right"><?php echo number_format($value['selling_price']); ?></td>
-              <td class="text-right"><?php echo number_format($value['reorder_level']); ?></td>
-              <td class="text-right"><?php echo $value['location']; ?></td>
-              <td class="text-right"><?php echo $value['expiry_date']; ?></td>
+              $catName = "-"; // default if no category
+              if (!empty($id)) {
+                  $catStmt = $pdo->prepare("SELECT categories_name FROM categories WHERE categories_code = :id");
+                  $catStmt->execute(['id' => $id]);
+                  $catResult = $catStmt->fetch(PDO::FETCH_ASSOC);
+                  if ($catResult) {
+                      $catName = $catResult['categories_name'];
+                  }
+              }
+      ?>
+          <tr>
+              <td><?= $idd; ?></td>
+              <td><?= htmlspecialchars($value['item_id']); ?></td>
+              <td><?= htmlspecialchars($value['item_name']); ?></td>
+              <td><?= htmlspecialchars($catName); ?></td>
+              <td class="text-right"><?= number_format($value['original_price']); ?></td>
+              <td class="text-right"><?= number_format($value['selling_price']); ?></td>
+              <td class="text-right"><?= number_format($value['reorder_level']); ?></td>
+              <td class="text-right"><?= htmlspecialchars($value['location']); ?></td>
+              <td class="text-right"><?= htmlspecialchars($value['expiry_date']); ?></td>
               <td>
-                <?php
-                if(!empty($value['item_image'])){
-                ?>
-                <img src="images/<?php echo $value['item_image']; ?>" width="60">
-                <?php
-                }else{
-                  echo "...";
-                }
-                ?>
+                  <?php if (!empty($value['item_image'])): ?>
+                      <img src="images/<?= htmlspecialchars($value['item_image']); ?>" width="60">
+                  <?php else: ?>
+                      ...
+                  <?php endif; ?>
               </td>
-              <td>
+              <td> 
                 <div class="btn-group">
                   <div class="container">
                     <a href="item_edit.php?id=<?php echo $value['id']; ?>" type="button" class="btn btn-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
-                        <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z" />
-                        <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z" />
-                      </svg>
-                    </a>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16"> <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z" /> <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z" /> </svg>
+                     </a>
                   </div>
                   <div class="contaienr">
                     <a href="item_delete.php?id=<?php echo $value['id']; ?>&item_id=<?php echo $value['item_id']; ?>" type="button" class="btn btn-sm delete-item">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash3-fill" viewBox="0 0 16 16">
-                        <path d="M11 1.5v1h3.5a.5.5 0 0 1 0 1h-.538l-.853 10.66A2 2 0 0 1 11.115 16h-6.23a2 2 0 0 1-1.994-1.84L2.038 3.5H1.5a.5.5 0 0 1 0-1H5v-1A1.5 1.5 0 0 1 6.5 0h3A1.5 1.5 0 0 1 11 1.5m-5 0v1h4v-1a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5M4.5 5.029l.5 8.5a.5.5 0 1 0 .998-.06l-.5-8.5a.5.5 0 1 0-.998.06m6.53-.528a.5.5 0 0 0-.528.47l-.5 8.5a.5.5 0 0 0 .998.058l.5-8.5a.5.5 0 0 0-.47-.528M8 4.5a.5.5 0 0 0-.5.5v8.5a.5.5 0 0 0 1 0V5a.5.5 0 0 0-.5-.5" />
-                      </svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash3-fill" viewBox="0 0 16 16"> <path d="M11 1.5v1h3.5a.5.5 0 0 1 0 1h-.538l-.853 10.66A2 2 0 0 1 11.115 16h-6.23a2 2 0 0 1-1.994-1.84L2.038 3.5H1.5a.5.5 0 0 1 0-1H5v-1A1.5 1.5 0 0 1 6.5 0h3A1.5 1.5 0 0 1 11 1.5m-5 0v1h4v-1a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5M4.5 5.029l.5 8.5a.5.5 0 1 0 .998-.06l-.5-8.5a.5.5 0 1 0-.998.06m6.53-.528a.5.5 0 0 0-.528.47l-.5 8.5a.5.5 0 0 0 .998.058l.5-8.5a.5.5 0 0 0-.47-.528M8 4.5a.5.5 0 0 0-.5.5v8.5a.5.5 0 0 0 1 0V5a.5.5 0 0 0-.5-.5" /> </svg>
                     </a>
                   </div>
                 </div>
               </td>
-            </tr>
-        <?php
-            $idd++;
+          </tr>
+      <?php
+              $idd++;
           }
-        }
-        ?>
+      }
+      ?>
       </tbody>
     </table>
+
+    <!-- Import Modal -->
+    <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <form action="import.php?table=item" method="post" enctype="multipart/form-data">
+          <div class="modal-content">
+            <div class="modal-header bg-light">
+              <h5 class="modal-title" id="importModalLabel">
+                <i class="bi bi-file-earmark-spreadsheet me-2"></i> Import Item Excel
+              </h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+
+            <div class="modal-body">
+              <!-- Instructions -->
+              <div class="mb-3 p-3 border rounded bg-light">
+                <h6><i class="bi bi-info-circle-fill text-primary me-1"></i> How to Import</h6>
+                <ol class="mb-2">
+                  <li><strong>Import Categories First:</strong> Make sure all categories exist in the system before importing items.</li>
+                  <li><strong>Download Template:</strong> Click the button below <i class="bi bi-download ms-1"></i></li>
+                  <li>Fill in your item data. <em class="text-warning">Do not change column headers!</em></li>
+                  <li>The <strong>expiry_date</strong> column is optional. Use <code>YYYY-MM-DD</code> format if provided. Leave blank if not applicable.</li>
+                  <li>Save and upload using the file input below.</li>
+                  <li>Click <strong>Upload</strong> to import the data.</li>
+                </ol>
+                <p class="text-danger mb-0"><strong>Note:</strong> Only the columns in the template will be imported. Extra columns will be ignored.</p>
+                </div>
+
+
+              <!-- Template Download -->
+              <a href="templates/item_template.xlsx" class="btn btn-info btn-sm mb-3">
+                <i class="bi bi-download me-1"></i> Download Template
+              </a>
+
+              <!-- File Input -->
+              <input type="file" name="excel_file" accept=".xlsx,.xls" class="form-control" required>
+            </div>
+
+            <div class="modal-footer">
+              <button type="submit" name="import" class="btn btn-success">
+                <i class="bi bi-upload me-1"></i> Upload
+              </button>
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
 
 
 

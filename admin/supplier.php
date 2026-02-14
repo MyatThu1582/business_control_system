@@ -43,32 +43,16 @@ require '../config/common.php';
    ?>
 
     <div class="col-md-12 px-3">
-      <?php if (!empty($_SESSION['success'])): ?>
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-          <?= htmlspecialchars($_SESSION['success']); unset($_SESSION['success']); ?>
-          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-      <?php endif; ?>
-      <?php if (!empty($_SESSION['error'])): ?>
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-          <?= htmlspecialchars($_SESSION['error']); unset($_SESSION['error']); ?>
-          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-      <?php endif; ?>
       <div class="d-flex mt-4 mb-4 justify-content-between">
         <div class="">
           <h1 class="card-title">Supplier Listings</h1>
         </div>
         <div class="d-flex text-right">
-          <!-- <div class="col ms-1">
+          <div class="col ms-1">
             <button type="button" class="btn import-btn btn-sm" data-toggle="modal" data-target="#importModal">
               Import Excel
             </button>
-          </div> -->
+          </div>
 
           <div class="col text-center">
             <a href="export_excel.php?table=supplier&search=<?= urlencode($_POST['search'] ?? '') ?>" class="btn export-btn btn-sm">
@@ -173,8 +157,8 @@ require '../config/common.php';
 
     <!-- Import Modal -->
     <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <form action="import_supplier.php" method="post" enctype="multipart/form-data">
+      <div class="modal-dialog modal-lg">
+        <form action="import.php?table=supplier" method="post" enctype="multipart/form-data">
           <div class="modal-content">
             <div class="modal-header bg-light">
               <h5 class="modal-title" id="importModalLabel">
